@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patapata.js</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --page-bg: #f6f7fb;
+            --card-bg: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: rgba(17, 24, 39, 0.16);
+            --field-bg: #ffffff;
+            --code-bg: #f3f4f6;
+            --btn-bg: #ffffff;
+            --btn-bg-hover: #f3f4f6;
+            --accent-bg: #fee2e2;
+            --accent-border: rgba(220, 38, 38, 0.35);
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.45;
+            background: var(--page-bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 12px;
+        }
+
+        .sub {
+            margin: 0 0 18px;
+            opacity: 0.8;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .grid>* {
+            min-width: 0;
+        }
+
+        @media (min-width: 900px) {
+            .grid.cols2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            background: var(--card-bg);
+        }
+
+        .card h2 {
+            font-size: 14px;
+            margin: 0 0 10px;
+            opacity: 0.9;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .row label {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            background: var(--field-bg);
+            color: inherit;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px 10px;
+            background: var(--field-bg);
+            height: 36px;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+        }
+
+        .numctl {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .numctl input[type="number"] {
+            max-width: 120px;
+        }
+
+        .numctl input[type="range"] {
+            flex: 1;
+        }
+
+        .numctl button {
+            padding: 6px 10px;
+        }
+
+        .checks {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 12px;
+            margin: 8px 0;
+        }
+
+        .checks label {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .actions.small {
+            margin-top: 8px;
+        }
+
+        .actions.small button {
+            padding: 6px 10px;
+        }
+
+        button {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            background: var(--btn-bg);
+            color: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--btn-bg-hover);
+        }
+
+        button.primary {
+            background: var(--accent-bg);
+            border-color: var(--accent-border);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        pre.codeblock {
+            margin: 0;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            overflow: auto;
+            background: var(--code-bg);
+            max-width: 100%;
+        }
+
+        pre.codeblock.dark {
+            background: #333;
+            color: #f9fafb;
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 14px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+                align-items: start;
+                gap: 6px;
+            }
+
+            .checks {
+                grid-template-columns: 1fr;
+            }
+
+            .numctl {
+                flex-wrap: wrap;
+                align-items: start;
+            }
+
+            .numctl input[type="range"] {
+                flex-basis: 100%;
+                width: 100%;
+            }
+
+            pre.codeblock {
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+            }
+        }
+
+        .numctl input[type="text"],
+        .numctl select {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .numctl select {
+            max-width: 220px;
+        }
+
+        .presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 8px 0 0;
+        }
+
+        .hint {
+            font-size: 12px;
+            opacity: 0.75;
+            margin-top: 8px;
+        }
+
+        .warn {
+            font-size: 12px;
+            margin-top: 8px;
+            color: #b44;
+        }
+
+        /* patapata-timer controls (patapata-control demo) */
+        .pp-timer-demo {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .pp-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .pp-controls patapata-control {
+            display: inline-block;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--btn-bg);
+            cursor: pointer;
+            user-select: none;
+            line-height: 1;
+        }
+
+        .pp-controls patapata-control:hover {
+            background: var(--btn-bg-hover);
+        }
+
+        /* Debug-only panels */
+        #smokePanel {
+            display: none;
+        }
+
+        html.ppdebug #smokePanel {
+            display: grid;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1 style="text-align:center;"><patapata-text value="patapata.js" click stack align-width autostart
+                interval="600" duration="600" rand rand-min="5" rand-max="10" easing="bounce"></patapata-text></h1>
+
+        <div class="card" style="margin: 0 0 16px;">
+            <div style="display:flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <h1 id="aboutTitle" style="margin: 0;">patapata.js とは</h1>
+                <div style="display:flex; gap: 8px; align-items: center;">
+                    <span id="langLabel" class="hint" style="margin: 0; white-space: nowrap;" aria-label="Language"
+                        title="Language">
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            style="vertical-align: -2px;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M2 12h20"></path>
+                            <path d="M12 2a15.3 15.3 0 0 1 0 20"></path>
+                            <path d="M12 2a15.3 15.3 0 0 0 0 20"></path>
+                        </svg>
+                        <span id="langHint" aria-hidden="true"
+                            style="margin-left: 4px; font-size: 11px; letter-spacing: 0.04em; opacity: 0.75;">JA/EN</span>
+                    </span>
+                    <select id="langSelect" style="width: auto; max-width: 160px;">
+                        <option value="ja">日本語</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+            <div class="hint" style="margin-top: 0;">
+                <p id="aboutDesc">数字や文字を「パタパタ」アニメーションで表示する Web Components (Custom Elements)ライブラリです。<br>
+                    時計・残り時間・カウントダウン/ストップウォッチ・テキスト切り替えなどを、HTMLだけで組み込めます。<br>
+                    各種オプションはデモで確認してください。
+                </p>
+            </div>
+
+        </div>
+        <div class="card">
+            <h2 id="setupTitle">Setup</h2>
+            <div class="hint" style="margin-top: 0;">
+                <span id="setupDownloadLabel">Download:</span> <a href="https://github.com/cosa338/patapatajs"
+                    target="_blank" rel="noopener">https://github.com/cosa338/patapatajs</a>
+            </div>
+
+            <div class="grid" style="margin-top: 10px;">
+                <div class="card" style="background: transparent; border: 0; padding: 0;">
+                    <div class="actions small" style="justify-content: space-between;">
+                        <div class="hint" id="setupLocalHint" style="margin: 0;">HTML sample (ファイルをダウンロードして利用)</div>
+                        <button type="button" id="copySetupLocal">Copy</button>
+                    </div>
+                    <pre id="setupLocalCode" class="codeblock dark"></pre>
+                </div>
+            </div>
+            <div class="grid" style="margin-top: 10px;">
+                <div class="card" style="background: transparent; border: 0; padding: 0;">
+                    <div class="actions small" style="justify-content: space-between;">
+                        <div class="hint" id="setupCdnHint" style="margin: 0;">HTML sample (CDNを利用)</div>
+                        <button type="button" id="copySetupCdn">Copy</button>
+                    </div>
+                    <pre id="setupCdnCode" class="codeblock dark"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid" style="margin-top: 16px;">
+            <div class="card">
+                <h2 id="previewTitle">Preview</h2>
+                <div style="margin: 6px 0 0; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
+                    <patapata-text id="demoText" value="あいうえお"></patapata-text>
+                    <patapata-clock id="demoClock" format="HH:mm:ss"></patapata-clock>
+                    <div id="demoTimerBox" class="pp-timer-demo" style="display:none">
+                        <patapata-timer id="p1" format="HHH:mm:ss"></patapata-timer>
+                        <div class="pp-controls">
+                            <patapata-control for="p1" action="start">start</patapata-control>
+                            <patapata-control for="p1" action="stop">stop</patapata-control>
+                            <patapata-control for="p1" action="reset">reset</patapata-control>
+                            <patapata-control for="p1" action="toggle">toggle</patapata-control>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="smokePanel" class="grid" style="margin-top: 16px;">
+            <div class="card">
+                <h2 id="smokeTitle">Smoke Test</h2>
+                <div class="hint" id="smokeDesc" style="margin-top: 0;">
+                    主要コンポーネントを生成し、主要属性を一通り切り替える簡易チェックです（例外が出ないこと/Canvasが生成されること）。
+                    キャッシュ統計はデバッグ有効時のみ利用できます（URL に <code>?ppdebug=1</code> を付けるか、Console で
+                    <code>localStorage.patapataDebug='1'</code> を設定）。
+                </div>
+                <div class="actions small">
+                    <button type="button" id="runSmoke">Run</button>
+                    <button type="button" id="clearSmoke">Clear</button>
+                    <button type="button" id="showCacheStats">Cache stats</button>
+                    <button type="button" id="clearCaches">Clear caches</button>
+                </div>
+                <pre id="smokeOut" class="codeblock"></pre>
+            </div>
+        </div>
+        <div class="grid cols2" style="margin-top: 16px;">
+            <div class="card">
+                <h2 id="controlsTitle">Controls</h2>
+
+                <div class="row">
+                    <label for="elementKind">Element</label>
+                    <select id="elementKind">
+                        <option value="text">patapata-text (テキスト)</option>
+                        <option value="clock">patapata-clock (日時)</option>
+                        <option value="timer">patapata-timer (タイマー)</option>
+                    </select>
+                </div>
+
+                <div class="row" id="elementPresetRow">
+                    <label for="textPreset">Preset</label>
+                    <div class="numctl">
+                        <select id="textPreset">
+                            <option value="static">static (固定表示)</option>
+                            <option value="rand">static (ランダム表示)</option>
+                            <option value="sequence">sequence (順送り)</option>
+                            <option value="multi">sequence (複数パート)</option>
+                            <option value="shuffle">shuffle (抽選)</option>
+                        </select>
+
+                        <select id="clockPreset" style="display:none">
+                            <option value="clock-24h">時計 (24時間)</option>
+                            <option value="clock-12h-en">時計 (12時間)(英)</option>
+                            <option value="clock-12h-jp">時計 (12時間)(日)</option>
+                            <option value="calendar-en">カレンダー (英)</option>
+                            <option value="calendar-jp">カレンダー (日)</option>
+                            <option value="diff-eom-hms">diff(月末) 残り時間</option>
+                            <option value="diff-eom-days">diff(月末) 残り日数</option>
+                        </select>
+
+                        <select id="timerPreset" style="display:none">
+                            <option value="stopwatch">stopwatch</option>
+                            <option value="countdown">countdown</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row" id="modeRow">
+                    <label for="mode">Mode</label>
+                    <select id="mode">
+                        <option value="static">static / rand (テキスト表示)</option>
+                        <option value="sequence">sequence (順送り表示)</option>
+                        <option value="shuffle">shuffle (抽選：shuffle-timeで停止)</option>
+                    </select>
+                </div>
+
+                <div class="row" id="valueRow">
+                    <label for="value" id="valueLabel">value</label>
+                    <textarea id="value" spellcheck="false"></textarea>
+                </div>
+
+                <div class="row" id="formatRow" style="display:none">
+                    <label for="format">format</label>
+                    <div class="numctl">
+                        <input id="format" type="text" spellcheck="false" placeholder="(default: HH:mm:ss)">
+                        <button type="button" id="formatReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row" id="diffRow" style="display:none">
+                    <label for="diff">diff</label>
+                    <div class="numctl">
+                        <input id="diff" type="text" spellcheck="false" placeholder="(e.g. 2026-12-31T23:59:59)">
+                        <button type="button" id="diffReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row" id="secRow" style="display:none">
+                    <label for="sec">sec</label>
+                    <div class="numctl">
+                        <input id="sec" type="number" min="0" step="0.1" placeholder="(countdown: seconds)">
+                        <button type="button" id="secReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="presets" id="formatPresets" style="display:none"></div>
+                <div class="presets" id="timerPresets" style="display:none"></div>
+                <div class="presets" id="valuePresets" style="display:none"></div>
+
+                <div class="row" id="intervalRow">
+                    <label for="interval">interval (ms)</label>
+                    <div class="numctl">
+                        <input id="interval" type="number" min="1" step="10" placeholder="(default)">
+                        <input id="intervalRange" type="range" min="10" max="5000" step="10" value="2000">
+                        <button type="button" id="intervalReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="duration">duration (ms)</label>
+                    <div class="numctl">
+                        <input id="duration" type="number" min="1" step="10" placeholder="(default)">
+                        <input id="durationRange" type="range" min="50" max="8000" step="10" value="3000">
+                        <button type="button" id="durationReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row" id="minDigitsRow" style="display:none">
+                    <label for="minDigits">min-digits</label>
+                    <div class="numctl">
+                        <input id="minDigits" type="number" min="0" step="1" placeholder="(default)">
+                        <button type="button" id="minDigitsReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label for="halfHead">half-head</label>
+                    <div class="numctl">
+                        <input id="halfHead" type="number" min="0" step="1" placeholder="(default: 0)">
+                        <button type="button" id="halfHeadReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="halfTail">half-tail</label>
+                    <div class="numctl">
+                        <input id="halfTail" type="number" min="0" step="1" placeholder="(default: 0)">
+                        <button type="button" id="halfTailReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label for="easing">easing</label>
+                    <div class="numctl">
+                        <select id="easing">
+                            <option value="">(default: linear)</option>
+                            <option value="linear">linear</option>
+                            <option value="ease">ease</option>
+                            <option value="bounce">bounce</option>
+                        </select>
+                        <button type="button" id="easingReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row" id="shuffleTimeRow">
+                    <label for="shuffleTime">shuffle-time (ms)</label>
+                    <div class="numctl">
+                        <input id="shuffleTime" type="number" min="1" step="10" placeholder="(default: 1800)">
+                        <input id="shuffleTimeRange" type="range" min="100" max="10000" step="10" value="1800">
+                        <button type="button" id="shuffleTimeReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row" id="randMinRow">
+                    <label for="randMin">rand-min</label>
+                    <div class="numctl">
+                        <input id="randMin" type="number" min="0" step="1" placeholder="(default)">
+                        <input id="randMinRange" type="range" min="0" max="50" step="1" value="5">
+                        <button type="button" id="randMinReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row" id="randMaxRow">
+                    <label for="randMax">rand-max</label>
+                    <div class="numctl">
+                        <input id="randMax" type="number" min="0" step="1" placeholder="(default)">
+                        <input id="randMaxRange" type="range" min="0" max="200" step="1" value="10">
+                        <button type="button" id="randMaxReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="checks">
+                    <label id="atomicLabel"><input id="atomic" type="checkbox"> <span
+                            id="atomicLabelText">atomic</span></label>
+                    <label id="stackLabel"><input id="stack" type="checkbox"> stack</label>
+                    <label id="alignWidthLabel"><input id="alignWidth" type="checkbox"> align-width</label>
+                    <label id="repeatLabel"><input id="repeat" type="checkbox"> repeat</label>
+                    <label id="clickLabel"><input id="click" type="checkbox" checked> click</label>
+                    <label id="autostartLabel"><input id="autostart" type="checkbox"> autostart</label>
+                    <label id="lightLabel"><input id="light" type="checkbox"> <span
+                            id="lightLabelText">light</span></label>
+                    <label id="randLabel"><input id="rand" type="checkbox"> rand</label>
+                    <label id="liveLabel"><input id="live" type="checkbox" checked> <span id="liveLabelText">live
+                            update</span></label>
+                </div>
+
+                <div class="actions">
+                    <button type="button" class="primary" id="apply">Apply</button>
+                </div>
+                <div id="clockHint" class="hint" style="display:none">
+                    - <b>interval</b> は常に 16ms 固定 (指定しても無効)です。<br>
+                    <br>
+                    - <b>S/SS/SSS</b> のパネルは <b>duration=400</b> 固定、それ以外は指定した duration で動きます。<br>
+                    <br>
+                    - <b>formatトークン</b> YYYY=西暦(4桁) / YY=西暦(2桁) / MM=月(01-12) / DD=日(01-31) / HH=時(00-23) /
+                    HH12=時(01-12) / ampm=AM/PM / ampm_jp=午前/午後 / mm=分(00-59) / ss=秒(00-59) / S=100ms(0-9) /
+                    SS=1/100秒(00-99) / SSS=ミリ秒(000-999) / ddd=曜日(SUN..SAT) / ddd_jp=曜日(日..土)<br>
+                    <br>
+                    - <b>diff</b> に日時を指定すると、現在時刻ではなく「指定日時 - 現在時刻」の残り時間を表示します。<br>
+                    <br>
+                    - <b>diff時のformatトークン</b> DDD=残り日数(全桁) / HHH=残り時間(全桁) / mmm=残り分(全桁) / sss=残り秒(全桁) / HH=時(00-23) /
+                    mm=分(00-59) / ss=秒(00-59) / S=100ms(0-9) / SS=1/100秒(00-99) / SSS=ミリ秒(000-999) ※diff がマイナスの場合は '-'
+                    が付きます
+                </div>
+                <div id="timerHint" class="hint" style="display:none">
+                    - <b>interval</b> は常に 16ms 固定 (指定しても無効)です。<br>
+                    <br>
+                    - <b>S/SS/SSS</b> のパネルは <b>duration=400</b> 固定、それ以外は指定した duration で動きます。<br>
+                    <br>
+                    - <b>sec</b> を指定するとカウントダウンになり、0で停止します。<br>
+                    <br>
+                    - <b>click</b> を指定するとクリックで Start → Stop → Rest の動作になります。<br>
+                    <br>
+                    - <b>formatトークン</b> HHH=合計時(全桁) / mmm=合計分(全桁) / sss=合計秒(全桁) / mm=分(00-59) / ss=秒(00-59) /
+                    S=100ms(0-9) / SS=1/100秒(00-99) / SSS=ミリ秒(000-999)
+                </div>
+                <div id="warn" class="warn" style="display:none"></div>
+            </div>
+
+            <div class="card">
+                <h2>CSS vars</h2>
+
+                <div class="row">
+                    <label for="cardWidthPx">card-width (px)</label>
+                    <div class="numctl">
+                        <input id="cardWidthPx" type="number" min="1" step="1" placeholder="(default)">
+                        <input id="cardWidthPxRange" type="range" min="20" max="160" step="1" value="80">
+                        <button type="button" id="cardWidthPxReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="cardHeightRatio">card-height ratio</label>
+                    <div class="numctl">
+                        <input id="cardHeightRatio" type="number" min="0.1" step="0.05" placeholder="(default)">
+                        <input id="cardHeightRatioRange" type="range" min="0.5" max="2" step="0.05" value="1.2">
+                        <button type="button" id="cardHeightRatioReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="fontScale">font-size scale</label>
+                    <div class="numctl">
+                        <input id="fontScale" type="number" min="0.1" step="0.05" placeholder="(default)">
+                        <input id="fontScaleRange" type="range" min="0.4" max="1.4" step="0.05" value="0.9">
+                        <button type="button" id="fontScaleReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label for="fontWeight">font-weight</label>
+                    <div class="numctl">
+                        <input id="fontWeight" type="number" min="100" max="900" step="100" placeholder="(default)">
+                        <input id="fontWeightRange" type="range" min="100" max="900" step="100" value="700">
+                        <button type="button" id="fontWeightReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label for="fontFamily">font-family</label>
+                    <div class="numctl">
+                        <select id="fontFamilyPreset">
+                            <option value="">(default)</option>
+                            <option value="'Helvetica Neue', Arial, sans-serif">Helvetica Neue / Arial</option>
+                            <option
+                                value="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+                                system-ui</option>
+                            <option value="'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif">Noto Sans
+                                JP / Hiragino / Yu Gothic</option>
+                            <option
+                                value="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">
+                                monospace</option>
+                        </select>
+                        <input id="fontFamily" type="text" placeholder="(default)" spellcheck="false">
+                        <button type="button" id="fontFamilyReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="gapScale">gap scale</label>
+                    <div class="numctl">
+                        <input id="gapScale" type="number" min="0" step="0.01" placeholder="(default)">
+                        <input id="gapScaleRange" type="range" min="0" max="0.3" step="0.01" value="0.06">
+                        <button type="button" id="gapScaleReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="radiusScale">radius scale</label>
+                    <div class="numctl">
+                        <input id="radiusScale" type="number" min="0" step="0.01" placeholder="(default)">
+                        <input id="radiusScaleRange" type="range" min="0" max="0.5" step="0.01" value="0.08">
+                        <button type="button" id="radiusScaleReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label for="panelTop">panel-top</label>
+                    <div class="numctl">
+                        <input id="panelTop" type="color" value="#333333">
+                        <button type="button" id="panelTopReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="panelBottom">panel-bottom</label>
+                    <div class="numctl">
+                        <input id="panelBottom" type="color" value="#333333">
+                        <button type="button" id="panelBottomReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="textColor">text-color</label>
+                    <div class="numctl">
+                        <input id="textColor" type="color" value="#dddddd">
+                        <button type="button" id="textColorReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="dividerColor">divider</label>
+                    <div class="numctl">
+                        <input id="dividerColor" type="color" value="#000000">
+                        <button type="button" id="dividerColorReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="dividerSizePx">divider-size (px)</label>
+                    <div class="numctl">
+                        <input id="dividerSizePx" type="number" min="0" step="0.5" placeholder="(default)">
+                        <input id="dividerSizePxRange" type="range" min="0" max="8" step="0.5" value="2">
+                        <button type="button" id="dividerSizePxReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="dividerMode">divider-mode</label>
+                    <select id="dividerMode">
+                        <option value="">(default)</option>
+                        <option value="line">line</option>
+                        <option value="gap">gap</option>
+                        <option value="cutout">cutout</option>
+                    </select>
+                </div>
+
+                <div class="row">
+                    <label for="edgeSizePx">edge-size (px)</label>
+                    <div class="numctl">
+                        <input id="edgeSizePx" type="number" min="0" step="0.5" placeholder="(default)">
+                        <input id="edgeSizePxRange" type="range" min="0" max="8" step="0.5" value="2">
+                        <button type="button" id="edgeSizePxReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="edgeColor">edge-color</label>
+                    <div class="numctl">
+                        <input id="edgeColor" type="color" value="#ffffff">
+                        <button type="button" id="edgeColorReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="insetShade">inset-shade</label>
+                    <div class="numctl">
+                        <input id="insetShade" type="number" min="0" step="0.1" placeholder="(default)">
+                        <input id="insetShadeRange" type="range" min="0" max="3" step="0.1" value="1">
+                        <button type="button" id="insetShadeReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label for="flipOverhang">flip-overhang</label>
+                    <div class="numctl">
+                        <input id="flipOverhang" type="number" min="0" max="0.5" step="0.01" placeholder="(default)">
+                        <input id="flipOverhangRange" type="range" min="0" max="0.2" step="0.01" value="0.06">
+                        <button type="button" id="flipOverhangReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="flipShadow">flip-shadow</label>
+                    <div class="numctl">
+                        <input id="flipShadow" type="number" min="0" max="1" step="0.05" placeholder="(default)">
+                        <input id="flipShadowRange" type="range" min="0" max="1" step="0.05" value="0.35">
+                        <button type="button" id="flipShadowReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label for="textAlign">text-align</label>
+                    <select id="textAlign">
+                        <option value="">(default)</option>
+                        <option value="left">left</option>
+                        <option value="center">center</option>
+                        <option value="right">right</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <label for="textValign">text-valign</label>
+                    <select id="textValign">
+                        <option value="">(default)</option>
+                        <option value="top">top</option>
+                        <option value="middle">middle</option>
+                        <option value="bottom">bottom</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <label for="offsetX">offset-x (px)</label>
+                    <div class="numctl">
+                        <input id="offsetX" type="number" step="1" placeholder="(default)">
+                        <input id="offsetXRange" type="range" min="-40" max="40" step="1" value="0">
+                        <button type="button" id="offsetXReset">Reset</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="offsetY">offset-y (px)</label>
+                    <div class="numctl">
+                        <input id="offsetY" type="number" step="1" placeholder="(default)">
+                        <input id="offsetYRange" type="range" min="-40" max="40" step="1" value="0">
+                        <button type="button" id="offsetYReset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="button" id="styleReset">Reset All CSS vars</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid" style="margin-top: 16px;">
+            <div class="card">
+                <h2 id="genHtmlTitle">Generated HTML</h2>
+                <div class="actions small" style="justify-content: space-between;">
+                    <div class="hint" id="genHtmlHint" style="margin: 0;">Previewを再現するコードです。</div>
+                    <button type="button" id="copyHtml">Copy</button>
+                </div>
+                <pre id="code" class="codeblock dark"></pre>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <h2 id="genCssHtmlTitle">Generated HTML (with CSS preset)</h2>
+            <div class="actions small" style="justify-content: space-between;">
+                <div class="hint" id="genCssHtmlHint" style="margin: 0;">複数の要素で同じスタイルを使いたい場合にはこちらを利用します。</div>
+                <button type="button" id="copyCssHtml">Copy</button>
+            </div>
+            <pre id="codeCssHtml" class="codeblock dark"></pre>
+        </div>
+    </div>
+
+    <script src="./patapata.min.js"></script>
+
+    <script>
+        (() => {
+            const $ = (id) => document.getElementById(id);
+
+            const pickLangFromSearch = () => {
+                try {
+                    const search = (typeof location !== 'undefined' && location && typeof location.search === 'string') ? location.search : '';
+                    const m = search.match(/(?:^|[?&])lang=(ja|en)(?:&|$)/i);
+                    return m ? String(m[1]).toLowerCase() : null;
+                } catch (_) {
+                    return null;
+                }
+            };
+
+            const detectLang = () => {
+                const fromSearch = pickLangFromSearch();
+                if (fromSearch === 'ja' || fromSearch === 'en') return fromSearch;
+                try {
+                    if (typeof localStorage !== 'undefined' && localStorage) {
+                        const v = localStorage.getItem('patapataLang');
+                        if (v === 'ja' || v === 'en') return v;
+                    }
+                } catch (_) { }
+                const nav = (typeof navigator !== 'undefined' && navigator && typeof navigator.language === 'string') ? navigator.language : '';
+                return /^ja/i.test(nav) ? 'ja' : 'en';
+            };
+
+            let CURRENT_LANG = detectLang();
+
+            const I18N = {
+                ja: {
+                    'lang.label': '言語',
+                    'about.title': 'patapata.js とは',
+                    'about.descHtml': '数字や文字を「パタパタ」アニメーションで表示する Web Components (Custom Elements)ライブラリです。<br>時計・残り時間・カウントダウン/ストップウォッチ・テキスト切り替えなどを、HTMLだけで組み込めます。<br>各種オプションはデモで確認してください。',
+                    'setup.title': 'Setup',
+                    'setup.download': 'Download:',
+                    'setup.local': 'HTML sample (ファイルをダウンロードして利用)',
+                    'setup.cdn': 'HTML sample (CDNを利用)',
+                    'preview.title': 'Preview',
+                    'smoke.title': 'Smoke Test',
+                    'smoke.descHtml': "主要コンポーネントを生成し、主要属性を一通り切り替える簡易チェックです（例外が出ないこと/Canvasが生成されること）。<br>キャッシュ統計はデバッグ有効時のみ利用できます（URL に <code>?ppdebug=1</code> を付けるか、Console で <code>localStorage.patapataDebug='1'</code> を設定）。",
+                    'controls.title': 'Controls',
+                    'label.element': 'Element',
+                    'label.preset': 'Preset',
+                    'label.mode': 'Mode',
+                    'mode.static': 'static / rand (テキスト表示)',
+                    'mode.sequence': 'sequence (順送り表示)',
+                    'mode.shuffle': 'shuffle (抽選：shuffle-timeで停止)',
+                    'check.atomic': 'atomic',
+                    'check.light': 'light',
+                    'check.live': 'live update',
+                    'btn.apply': 'Apply',
+                    'btn.resetAllCssVars': 'Reset All CSS vars',
+                    'hint.clockHtml': '- <b>interval</b> は常に 16ms 固定 (指定しても無効)です。<br><br>- <b>S/SS/SSS</b> のパネルは <b>duration=400</b> 固定、それ以外は指定した duration で動きます。<br><br>- <b>formatトークン</b> YYYY=西暦(4桁) / YY=西暦(2桁) / MM=月(01-12) / DD=日(01-31) / HH=時(00-23) / HH12=時(01-12) / ampm=AM/PM / ampm_jp=午前/午後 / mm=分(00-59) / ss=秒(00-59) / S=100ms(0-9) / SS=1/100秒(00-99) / SSS=ミリ秒(000-999) / ddd=曜日(SUN..SAT) / ddd_jp=曜日(日..土)<br><br>- <b>diff</b> に日時を指定すると、現在時刻ではなく「指定日時 - 現在時刻」の残り時間を表示します。<br><br>- <b>diff時のformatトークン</b> DDD=残り日数(全桁) / HHH=残り時間(全桁) / mmm=残り分(全桁) / sss=残り秒(全桁) / HH=時(00-23) / mm=分(00-59) / ss=秒(00-59) / S=100ms(0-9) / SS=1/100秒(00-99) / SSS=ミリ秒(000-999) ※diff がマイナスの場合は - が付きます',
+                    'hint.timerHtml': '- <b>interval</b> は常に 16ms 固定 (指定しても無効)です。<br><br>- <b>S/SS/SSS</b> のパネルは <b>duration=400</b> 固定、それ以外は指定した duration で動きます。<br><br>- <b>sec</b> を指定するとカウントダウンになり、0で停止します。<br><br>- <b>click</b> を指定するとクリックで Start → Stop → Rest の動作になります。<br><br>- <b>formatトークン</b> HHH=合計時(全桁) / mmm=合計分(全桁) / sss=合計秒(全桁) / mm=分(00-59) / ss=秒(00-59) / S=100ms(0-9) / SS=1/100秒(00-99) / SSS=ミリ秒(000-999)',
+                    'preset.clock-24h': '時計 (24時間)',
+                    'preset.clock-12h-en': '時計 (12時間)(英)',
+                    'preset.clock-12h-jp': '時計 (12時間)(日)',
+                    'preset.calendar-en': 'カレンダー (英)',
+                    'preset.calendar-jp': 'カレンダー (日)',
+                    'preset.diff-eom-hms': 'diff(月末) 残り時間',
+                    'preset.diff-eom-days': 'diff(月末) 残り日数',
+                    'preset.stopwatch': 'stopwatch',
+                    'preset.countdown': 'countdown',
+                    'warn.jsonDisablesRand': '- value をJSON形式で記述すると sequence 動作になり rand は無効になります',
+                    'warn.shuffleNeedsJson': 'shuffle は value を JSON 配列で指定してください。',
+                    'warn.sequenceNeedsJson': 'sequence は value を JSON 配列で指定してください。',
+                    'snippet.timerControlComment': '<!--\n  patapata-control は patapata-timer と同じidを指定することで、どこに置いても start、stop、reset、toggleボタンとして機能します。\n  デザインはご自由に作成してください。Previewで利用しているCSSもサンプルに乗せています。\n-->',
+                    'snippet.cssPresetComment': '/*\n  custom-patapata preset (generated by demo)\n  <patapata-text custom-patapata value="example"></patapata-text> のように指定してください。\n*/',
+                    'genHtml.title': 'Generated HTML',
+                    'genHtml.hint': 'Previewを再現するコードです。',
+                    'genCssHtml.title': 'Generated HTML (with CSS preset)',
+                    'genCssHtml.hint': '複数の要素で同じスタイルを使いたい場合にはこちらを利用します。',
+                    'btn.copy': 'Copy',
+                    'btn.copied': 'Copied!',
+                    'btn.copyFailed': 'Copy failed',
+                    'btn.run': 'Run',
+                    'btn.clear': 'Clear',
+                    'btn.cacheStats': 'Cache stats',
+                    'btn.clearCaches': 'Clear caches',
+                    'timer.start': 'start',
+                    'timer.stop': 'stop',
+                    'timer.reset': 'reset',
+                    'timer.toggle': 'toggle',
+                    'label.value': 'value',
+                    'label.valueJson': 'value (JSON)',
+                },
+                en: {
+                    'lang.label': 'Language',
+                    'about.title': 'About patapata.js',
+                    'about.descHtml': 'A Web Components (Custom Elements) library that displays numbers/text with a "patapata" flip animation.<br>You can embed clocks, remaining time, countdown/stopwatch, and text switching with just HTML.<br>Use this demo to explore the options.',
+                    'setup.title': 'Setup',
+                    'setup.download': 'Download:',
+                    'setup.local': 'HTML sample (use downloaded files)',
+                    'setup.cdn': 'HTML sample (use CDN)',
+                    'preview.title': 'Preview',
+                    'smoke.title': 'Smoke Test',
+                    'smoke.descHtml': "A quick check that creates core components and toggles key attributes (no exceptions / canvas gets created).<br>Cache stats are available only when debug is enabled (add <code>?ppdebug=1</code> or set <code>localStorage.patapataDebug='1'</code>).",
+                    'controls.title': 'Controls',
+                    'label.element': 'Element',
+                    'label.preset': 'Preset',
+                    'label.mode': 'Mode',
+                    'mode.static': 'static / rand (static text)',
+                    'mode.sequence': 'sequence (step through list)',
+                    'mode.shuffle': 'shuffle (draw and stop by shuffle-time)',
+                    'check.atomic': 'atomic',
+                    'check.light': 'light',
+                    'check.live': 'live update',
+                    'btn.apply': 'Apply',
+                    'btn.resetAllCssVars': 'Reset All CSS vars',
+                    'hint.clockHtml': '- <b>interval</b> is always fixed at 16ms (ignored even if specified).<br><br>- <b>S/SS/SSS</b> panels always use <b>duration=400</b>. Others use the specified duration.<br><br>- <b>format tokens</b> YYYY=year(4) / YY=year(2) / MM=month(01-12) / DD=day(01-31) / HH=hour(00-23) / HH12=hour(01-12) / ampm=AM/PM / ampm_jp=午前/午後 / mm=minute(00-59) / ss=second(00-59) / S=100ms(0-9) / SS=1/100s(00-99) / SSS=ms(000-999) / ddd=weekday(SUN..SAT) / ddd_jp=weekday(日..土)<br><br>- If you set <b>diff</b>, it shows remaining time: (diff - now) instead of current time.<br><br>- <b>diff format tokens</b> DDD=days(total digits) / HHH=hours(total digits) / mmm=minutes(total digits) / sss=seconds(total digits) / HH=hour(00-23) / mm=minute(00-59) / ss=second(00-59) / S=100ms(0-9) / SS=1/100s(00-99) / SSS=ms(000-999). If diff is negative, it is prefixed with -.',
+                    'hint.timerHtml': '- <b>interval</b> is always fixed at 16ms (ignored even if specified).<br><br>- <b>S/SS/SSS</b> panels always use <b>duration=400</b>. Others use the specified duration.<br><br>- If you set <b>sec</b>, it becomes a countdown and stops at 0.<br><br>- If you set <b>click</b>, clicking cycles Start → Stop → Reset.<br><br>- <b>format tokens</b> HHH=total hours / mmm=total minutes / sss=total seconds / mm=minute(00-59) / ss=second(00-59) / S=100ms(0-9) / SS=1/100s(00-99) / SSS=ms(000-999)',
+                    'preset.clock-24h': 'Clock (24h)',
+                    'preset.clock-12h-en': 'Clock (12h) (EN)',
+                    'preset.clock-12h-jp': 'Clock (12h) (JP)',
+                    'preset.calendar-en': 'Calendar (EN)',
+                    'preset.calendar-jp': 'Calendar (JP)',
+                    'preset.diff-eom-hms': 'diff (end of month) remaining time',
+                    'preset.diff-eom-days': 'diff (end of month) remaining days',
+                    'preset.stopwatch': 'stopwatch',
+                    'preset.countdown': 'countdown',
+                    'warn.jsonDisablesRand': '- When value is a JSON array, patapata-text runs in sequence mode and rand is disabled.',
+                    'warn.shuffleNeedsJson': 'shuffle requires value to be a JSON array.',
+                    'warn.sequenceNeedsJson': 'sequence requires value to be a JSON array.',
+                    'snippet.timerControlComment': '<!--\n  patapata-control works as start/stop/reset/toggle buttons anywhere as long as it points to the same id as patapata-timer.\n  Feel free to style it. The Preview CSS is included here as a sample.\n-->',
+                    'snippet.cssPresetComment': '/*\n  custom-patapata preset (generated by demo)\n  Use it like: <patapata-text custom-patapata value="example"></patapata-text>\n*/',
+                    'genHtml.title': 'Generated HTML',
+                    'genHtml.hint': 'HTML that reproduces the Preview.',
+                    'genCssHtml.title': 'Generated HTML (with CSS preset)',
+                    'genCssHtml.hint': 'Use this when you want to share the same style across multiple elements.',
+                    'btn.copy': 'Copy',
+                    'btn.copied': 'Copied!',
+                    'btn.copyFailed': 'Copy failed',
+                    'btn.run': 'Run',
+                    'btn.clear': 'Clear',
+                    'btn.cacheStats': 'Cache stats',
+                    'btn.clearCaches': 'Clear caches',
+                    'timer.start': 'start',
+                    'timer.stop': 'stop',
+                    'timer.reset': 'reset',
+                    'timer.toggle': 'toggle',
+                    'label.value': 'value',
+                    'label.valueJson': 'value (JSON)',
+                },
+            };
+
+            const t = (key) => {
+                const lang = (CURRENT_LANG === 'ja' || CURRENT_LANG === 'en') ? CURRENT_LANG : 'en';
+                return (I18N[lang] && I18N[lang][key]) || (I18N.en && I18N.en[key]) || String(key);
+            };
+
+            const setText = (el, text) => {
+                if (!el) return;
+                el.textContent = String(text ?? '');
+            };
+
+            const setHtml = (el, html) => {
+                if (!el) return;
+                el.innerHTML = String(html ?? '');
+            };
+
+            const applyI18n = () => {
+                document.documentElement.lang = CURRENT_LANG;
+
+                const ll = $('langLabel');
+                if (ll) {
+                    ll.setAttribute('title', t('lang.label'));
+                    ll.setAttribute('aria-label', t('lang.label'));
+                }
+                setText($('aboutTitle'), t('about.title'));
+                setHtml($('aboutDesc'), t('about.descHtml'));
+
+                setText($('setupTitle'), t('setup.title'));
+                setText($('setupDownloadLabel'), t('setup.download'));
+                setText($('setupLocalHint'), t('setup.local'));
+                setText($('setupCdnHint'), t('setup.cdn'));
+
+                setText($('previewTitle'), t('preview.title'));
+                setText($('controlsTitle'), t('controls.title'));
+
+                setText($('genHtmlTitle'), t('genHtml.title'));
+                setText($('genHtmlHint'), t('genHtml.hint'));
+                setText($('genCssHtmlTitle'), t('genCssHtml.title'));
+                setText($('genCssHtmlHint'), t('genCssHtml.hint'));
+
+                const copyBtnIds = ['copySetupLocal', 'copySetupCdn', 'copyHtml', 'copyCssHtml'];
+                for (const id of copyBtnIds) {
+                    const b = $(id);
+                    if (!b) continue;
+                    b.textContent = t('btn.copy');
+                    if (b.dataset) delete b.dataset.originalLabel;
+                }
+
+                setText($('smokeTitle'), t('smoke.title'));
+                setHtml($('smokeDesc'), t('smoke.descHtml'));
+                setText($('runSmoke'), t('btn.run'));
+                setText($('clearSmoke'), t('btn.clear'));
+                setText($('showCacheStats'), t('btn.cacheStats'));
+                setText($('clearCaches'), t('btn.clearCaches'));
+
+                document.querySelectorAll('patapata-control[for="p1"]')?.forEach((el) => {
+                    const action = String(el.getAttribute('action') || '');
+                    el.textContent = t(`timer.${action}`);
+                });
+
+                // Controls labels
+                setText(document.querySelector('label[for="elementKind"]'), t('label.element'));
+                setText(document.querySelector('#elementPresetRow label'), t('label.preset'));
+                setText(document.querySelector('label[for="mode"]'), t('label.mode'));
+
+                setText($('atomicLabelText'), t('check.atomic'));
+                setText($('lightLabelText'), t('check.light'));
+                setText($('liveLabelText'), t('check.live'));
+
+                setText($('apply'), t('btn.apply'));
+                setText($('styleReset'), t('btn.resetAllCssVars'));
+
+                setHtml($('clockHint'), t('hint.clockHtml'));
+                setHtml($('timerHint'), t('hint.timerHtml'));
+
+                // Mode options (labels only; behavior unchanged)
+                if (mode) {
+                    const oText = (value, text) => {
+                        const opt = mode.querySelector(`option[value="${value}"]`);
+                        if (opt) opt.textContent = text;
+                    };
+                    oText('static', t('mode.static'));
+                    oText('sequence', t('mode.sequence'));
+                    oText('shuffle', t('mode.shuffle'));
+                }
+
+                // Element kind options
+                if (elementKind) {
+                    const oText = (value, text) => {
+                        const opt = elementKind.querySelector(`option[value="${value}"]`);
+                        if (opt) opt.textContent = text;
+                    };
+                    if (CURRENT_LANG === 'ja') {
+                        oText('text', 'patapata-text (テキスト)');
+                        oText('clock', 'patapata-clock (日時)');
+                        oText('timer', 'patapata-timer (タイマー)');
+                    } else {
+                        oText('text', 'patapata-text (Text)');
+                        oText('clock', 'patapata-clock (Clock)');
+                        oText('timer', 'patapata-timer (Timer)');
+                    }
+                }
+
+                // Text preset options (labels only; values/params unchanged)
+                if (textPreset) {
+                    const oText = (value, text) => {
+                        const opt = textPreset.querySelector(`option[value="${value}"]`);
+                        if (opt) opt.textContent = text;
+                    };
+                    if (CURRENT_LANG === 'ja') {
+                        oText('static', 'static (固定表示)');
+                        oText('rand', 'static (ランダム表示)');
+                        oText('sequence', 'sequence (順送り)');
+                        oText('multi', 'sequence (複数パート)');
+                        oText('shuffle', 'shuffle (抽選)');
+                    } else {
+                        oText('static', 'static (fixed)');
+                        oText('rand', 'static (random)');
+                        oText('sequence', 'sequence (step)');
+                        oText('multi', 'sequence (multi-part)');
+                        oText('shuffle', 'shuffle (draw)');
+                    }
+                }
+
+                // Clock preset options (labels only)
+                if (clockPreset) {
+                    const oText = (value, text) => {
+                        const opt = clockPreset.querySelector(`option[value="${value}"]`);
+                        if (opt) opt.textContent = text;
+                    };
+                    oText('clock-24h', t('preset.clock-24h'));
+                    oText('clock-12h-en', t('preset.clock-12h-en'));
+                    oText('clock-12h-jp', t('preset.clock-12h-jp'));
+                    oText('calendar-en', t('preset.calendar-en'));
+                    oText('calendar-jp', t('preset.calendar-jp'));
+                    oText('diff-eom-hms', t('preset.diff-eom-hms'));
+                    oText('diff-eom-days', t('preset.diff-eom-days'));
+                }
+
+                // Timer preset options (labels only)
+                if (timerPreset) {
+                    const oText = (value, text) => {
+                        const opt = timerPreset.querySelector(`option[value="${value}"]`);
+                        if (opt) opt.textContent = text;
+                    };
+                    oText('stopwatch', t('preset.stopwatch'));
+                    oText('countdown', t('preset.countdown'));
+                }
+
+            };
+
+            const setLang = (lang) => {
+                const next = (lang === 'ja' || lang === 'en') ? lang : 'en';
+                CURRENT_LANG = next;
+                try {
+                    if (typeof localStorage !== 'undefined' && localStorage) localStorage.setItem('patapataLang', next);
+                } catch (_) { }
+                applyI18n();
+                try {
+                    if (typeof syncModeUi === 'function') syncModeUi();
+                } catch (_) { }
+                try {
+                    if (typeof buildHtmlSnippet === 'function' && code) code.textContent = buildHtmlSnippet();
+                    if (typeof buildCssHtmlSnippet === 'function' && codeCssHtml) codeCssHtml.textContent = buildCssHtmlSnippet();
+                } catch (_) { }
+            };
+
+            const isDemoDebugEnabled = () => {
+                try {
+                    const search = (typeof location !== 'undefined' && location && typeof location.search === 'string') ? location.search : '';
+                    if (/(?:^|[?&])ppdebug=1(?:&|$)/.test(search)) return true;
+                    if (/(?:^|[?&])patapataDebug=1(?:&|$)/.test(search)) return true;
+                    if (typeof localStorage !== 'undefined' && localStorage) {
+                        if (localStorage.getItem('patapataDebug') === '1') return true;
+                    }
+                } catch (_) { }
+                return false;
+            };
+
+            const debugEnabled = isDemoDebugEnabled();
+            document.documentElement.classList.toggle('ppdebug', debugEnabled);
+
+            const demoText = $('demoText');
+            const demoClock = $('demoClock');
+            const demoTimer = $('p1');
+            const demoTimerBox = $('demoTimerBox');
+            const elementKind = $('elementKind');
+            const warn = $('warn');
+            const code = $('code');
+            const codeCssHtml = $('codeCssHtml');
+
+            const modeRow = $('modeRow');
+            const mode = $('mode');
+            const valueRow = $('valueRow');
+            const valueLabel = $('valueLabel');
+            const value = $('value');
+            const valuePresets = $('valuePresets');
+
+            const formatRow = $('formatRow');
+            const format = $('format');
+            const formatReset = $('formatReset');
+            const formatPresets = $('formatPresets');
+            const timerPresets = $('timerPresets');
+
+            const textPreset = $('textPreset');
+            const clockPreset = $('clockPreset');
+            const timerPreset = $('timerPreset');
+
+            const diffRow = $('diffRow');
+            const diff = $('diff');
+            const diffReset = $('diffReset');
+
+            const secRow = $('secRow');
+            const sec = $('sec');
+            const secReset = $('secReset');
+
+            const intervalRow = $('intervalRow');
+            const interval = $('interval');
+            const intervalRange = $('intervalRange');
+            const intervalReset = $('intervalReset');
+
+            const duration = $('duration');
+            const durationRange = $('durationRange');
+            const durationReset = $('durationReset');
+
+            const minDigitsRow = $('minDigitsRow');
+            const minDigits = $('minDigits');
+            const minDigitsReset = $('minDigitsReset');
+
+            const halfHead = $('halfHead');
+            const halfHeadReset = $('halfHeadReset');
+            const halfTail = $('halfTail');
+            const halfTailReset = $('halfTailReset');
+
+            const easing = $('easing');
+            const easingReset = $('easingReset');
+
+            const shuffleTimeRow = $('shuffleTimeRow');
+            const shuffleTime = $('shuffleTime');
+            const shuffleTimeRange = $('shuffleTimeRange');
+            const shuffleTimeReset = $('shuffleTimeReset');
+
+            const randMinRow = $('randMinRow');
+            const randMaxRow = $('randMaxRow');
+            const randMin = $('randMin');
+            const randMinRange = $('randMinRange');
+            const randMinReset = $('randMinReset');
+            const randMax = $('randMax');
+            const randMaxRange = $('randMaxRange');
+            const randMaxReset = $('randMaxReset');
+
+            const atomic = $('atomic');
+            const stack = $('stack');
+            const alignWidth = $('alignWidth');
+            const repeat = $('repeat');
+            const click = $('click');
+            const autostart = $('autostart');
+            const light = $('light');
+            const rand = $('rand');
+            const live = $('live');
+
+            const stackLabel = $('stackLabel');
+            const alignWidthLabel = $('alignWidthLabel');
+            const repeatLabel = $('repeatLabel');
+            const clickLabel = $('clickLabel');
+            const autostartLabel = $('autostartLabel');
+            const randLabel = $('randLabel');
+            const clockHint = $('clockHint');
+            const timerHint = $('timerHint');
+
+            const langSelect = $('langSelect');
+            if (langSelect) {
+                langSelect.value = CURRENT_LANG;
+                langSelect.addEventListener('change', () => {
+                    setLang(String(langSelect.value || 'en'));
+                });
+            }
+
+            // Initial language application (safe even before all functions are defined).
+            applyI18n();
+
+            const activeDemo = () => {
+                const k = elementKind ? String(elementKind.value || 'text') : 'text';
+                if (k === 'clock') return demoClock;
+                if (k === 'timer') return demoTimer;
+                return demoText;
+            };
+
+            const applyToBoth = (fn) => {
+                fn(demoText);
+                fn(demoClock);
+                fn(demoTimer);
+            };
+
+            // Style controls (CSS vars)
+            const cardWidthPx = $('cardWidthPx');
+            const cardWidthPxRange = $('cardWidthPxRange');
+            const cardWidthPxReset = $('cardWidthPxReset');
+
+            const cardHeightRatio = $('cardHeightRatio');
+            const cardHeightRatioRange = $('cardHeightRatioRange');
+            const cardHeightRatioReset = $('cardHeightRatioReset');
+
+            const fontScale = $('fontScale');
+            const fontScaleRange = $('fontScaleRange');
+            const fontScaleReset = $('fontScaleReset');
+
+            const fontWeight = $('fontWeight');
+            const fontWeightRange = $('fontWeightRange');
+            const fontWeightReset = $('fontWeightReset');
+
+            const gapScale = $('gapScale');
+            const gapScaleRange = $('gapScaleRange');
+            const gapScaleReset = $('gapScaleReset');
+
+            const radiusScale = $('radiusScale');
+            const radiusScaleRange = $('radiusScaleRange');
+            const radiusScaleReset = $('radiusScaleReset');
+
+            const panelTop = $('panelTop');
+            const panelTopReset = $('panelTopReset');
+            const panelBottom = $('panelBottom');
+            const panelBottomReset = $('panelBottomReset');
+            const textColor = $('textColor');
+            const textColorReset = $('textColorReset');
+            const dividerColor = $('dividerColor');
+            const dividerColorReset = $('dividerColorReset');
+            const dividerSizePx = $('dividerSizePx');
+            const dividerSizePxRange = $('dividerSizePxRange');
+            const dividerSizePxReset = $('dividerSizePxReset');
+            const dividerMode = $('dividerMode');
+
+            const edgeSizePx = $('edgeSizePx');
+            const edgeSizePxRange = $('edgeSizePxRange');
+            const edgeSizePxReset = $('edgeSizePxReset');
+            const edgeColor = $('edgeColor');
+            const edgeColorReset = $('edgeColorReset');
+            const insetShade = $('insetShade');
+            const insetShadeRange = $('insetShadeRange');
+            const insetShadeReset = $('insetShadeReset');
+
+            const flipOverhang = $('flipOverhang');
+            const flipOverhangRange = $('flipOverhangRange');
+            const flipOverhangReset = $('flipOverhangReset');
+            const flipShadow = $('flipShadow');
+            const flipShadowRange = $('flipShadowRange');
+            const flipShadowReset = $('flipShadowReset');
+
+            const textAlign = $('textAlign');
+            const textValign = $('textValign');
+            const offsetX = $('offsetX');
+            const offsetXRange = $('offsetXRange');
+            const offsetXReset = $('offsetXReset');
+            const offsetY = $('offsetY');
+            const offsetYRange = $('offsetYRange');
+            const offsetYReset = $('offsetYReset');
+
+            const STYLE_VARS = [
+                '--patapata-card-width',
+                '--patapata-card-height',
+                '--patapata-card-font-size',
+                '--patapata-display-gap',
+                '--patapata-card-radius',
+                '--patapata-font-weight',
+                '--patapata-font-family',
+                '--patapata-panel-top',
+                '--patapata-panel-bottom',
+                '--patapata-text-color',
+                '--patapata-divider',
+                '--patapata-divider-size',
+                '--patapata-divider-mode',
+                '--patapata-edge-size',
+                '--patapata-edge-color',
+                '--patapata-inset-shade-strength',
+                '--patapata-flip-overhang',
+                '--patapata-flip-shadow',
+                '--patapata-text-align',
+                '--patapata-text-valign',
+                '--patapata-text-offset-x',
+                '--patapata-text-offset-y',
+            ];
+
+            const parseJsonLoose = (raw) => {
+                if (raw == null) return null;
+                const s = String(raw).trim();
+                if (!s) return null;
+                const c0 = s[0];
+                if (c0 !== '[' && c0 !== '{') return null;
+                try { return JSON.parse(s); } catch { return null; }
+            };
+
+            const PRESETS_JA = {
+                static: 'HELLO',
+                sequence: ["このように", "順番に", "表示を", "切り替えます"],
+                multi: [
+                    ["このように", "指定した間隔で", "リピート設定を", "リピート", "とまります"],
+                    ["複数要素を", "表示を", "指定した場合は", "しない場合は"],
+                    ["表示して", "切り替えます", "ループします", "最後で"],
+                ],
+                shuffle: [
+                    ["日曜18時30分", "今日", "さっき", "昨日の深夜", "月曜の朝", "給料日前", "テスト前夜", "締切10分前", "雨の日", "寝起き3秒", "帰り道", "昼休み", "3限の後", "文化祭当日", "夏休み最終日", "推しの配信中", "通知が鳴った瞬間", "電車が止まった日", "部屋が寒い日", "なぜか無敵な日", "テンション最低の日", "やる気だけある日"],
+                    ["テレビで", "教室で", "図書館で", "体育館裏で", "駅のホームで", "自販機の前で", "コンビニで", "カラオケで", "ファミレスで", "エレベーターで", "バス停で", "屋上で", "廊下で", "トイレの前で", "部室で", "ゲーセンで", "家の玄関で", "布団の中で", "スマホの画面上で", "なぜか異世界で"],
+                    ["陽気な姉さんが", "猫が", "伝説の勇者が", "上司が", "宇宙人が", "昨日の自分が", "隣の席の人が", "転校生が", "担任が", "生徒会長が", "うちの妹が", "うちの兄が", "友だちが", "先輩が", "後輩が", "通りすがりの人が", "未来の自分が", "影の自分が", "AIっぽい何かが", "謎のマスコットが", "やたら元気な誰かが"],
+                    ["お魚くわえたドラ猫を", "カレーを", "重要な会議を", "パソコンを", "宿題を", "タイムマシンを", "テスト範囲を", "スマホを", "推しグッズを", "学級日誌を", "部活の道具を", "プリントを", "イヤホンを", "財布を", "弁当を", "黒歴史を", "やる気を", "眠気を", "通知音を", "空気を", "理不尽を"],
+                    ["裸足で追いかけた。", "食べ尽くした。", "投げ捨てた。", "冷蔵庫に入れた。", "うっかり消した。", "眺めた。", "二度見した。", "封印した。", "拝んだ。", "無言で渡した。", "全力で隠した。", "丁寧に破壊した。", "とりあえず燃やした。", "逆に褒めた。", "神に捧げた。", "メルカリに出品した。", "優しく踏みつけた。", "マヨネーズで和えた。", "なかったことにした。"]
+                ],
+                rand: 'patapata',
+            };
+
+            const PRESETS_EN = {
+                static: 'HELLO',
+                sequence: ["Like this,", "we can", "switch text", "in order."],
+                multi: [
+                    ["This will", "elements", "the display", "interval.", "a repeat", "loop.", "a repeat,", "at the end."],
+                    ["display", "and", "at the", "If you", "setting,", "If you do", "it will"],
+                    ["multiple", "switch", "specified", "specify", "it will", "not specify", "stop"],
+
+                ],
+                shuffle: [
+                    ["A cat", "My boss", "That kid", "An alien", "Old me", "Future me", "The AI", "This app", "My phone", "The toaster", "A ghost", "My code", "That bug", "The server", "This file"],
+                    ["ate", "deleted", "married", "fired", "stole", "forgave", "ignored", "worshiped", "panicked at", "laughed at", "argued with", "believed", "gave up", "blamed"],
+                    ["the code", "my lunch", "the meeting", "this app", "the future", "my past", "the truth", "my boss", "this bug", "the plan", "my job", "the system", "this file", "the problem", "everything"],
+                    ["today", "yesterday", "at 3am", "last year", "right now", "in 2040", "too late", "too soon", "by mistake"],
+                    ["at work", "at home", "online", "in bed", "in space", "on server", "in cloud", "on screen", "in code", "in dream"],
+                ],
+                rand: 'patapata',
+            };
+
+            const getPresets = () => (CURRENT_LANG === 'ja') ? PRESETS_JA : PRESETS_EN;
+
+            const formatPresetValue = (v) => {
+                if (typeof v === 'string') return v;
+                return JSON.stringify(v, null, 2);
+            };
+
+            const DEFAULT_PRESET_KEYS = {
+                text: 'static',
+                clock: 'clock-24h',
+                timer: 'stopwatch',
+            };
+
+            const SETUP_LOCAL_HTML = [
+                '<!-- Setup -->',
+                '<script src="./patapata.min.js" defer></' + 'script>',
+            ].join('\n');
+
+            const SETUP_CDN_HTML = [
+                '<!-- Setup (CDN) -->',
+                '<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs/patapata.min.js" defer></' + 'script>',
+            ].join('\n');
+
+            // Live update
+            let pending = false;
+            const scheduleApply = ({ force = false } = {}) => {
+                if (!force && !live.checked) return;
+                if (force) {
+                    pending = false;
+                    apply();
+                    return;
+                }
+                if (pending) return;
+                pending = true;
+                requestAnimationFrame(() => {
+                    pending = false;
+                    apply();
+                });
+            };
+
+            const flashButton = (btn, ok) => {
+                if (!btn) return;
+                const original = btn.dataset.originalLabel || btn.textContent;
+                if (!btn.dataset.originalLabel) btn.dataset.originalLabel = original;
+                btn.textContent = ok ? t('btn.copied') : t('btn.copyFailed');
+                btn.disabled = true;
+                window.setTimeout(() => {
+                    btn.textContent = btn.dataset.originalLabel || original;
+                    btn.disabled = false;
+                }, 1200);
+            };
+
+            const markDirty = (el) => {
+                if (!el) return;
+                el.dataset.dirty = '1';
+            };
+
+            const clearDirty = (el) => {
+                if (!el) return;
+                delete el.dataset.dirty;
+            };
+
+            const isDirty = (el) => !!(el && el.dataset && el.dataset.dirty === '1');
+
+            const bindNumberSlider = ({ numberEl, rangeEl, resetEl, defaultRangeValue }) => {
+                if (!numberEl || !rangeEl || !resetEl) return;
+                if (defaultRangeValue != null) rangeEl.value = String(defaultRangeValue);
+
+                const initialRangeValue = String(rangeEl.value);
+                rangeEl.dataset.initialValue = initialRangeValue;
+
+                rangeEl.addEventListener('input', () => {
+                    numberEl.value = rangeEl.value;
+                    markDirty(numberEl);
+                    scheduleApply();
+                });
+
+                numberEl.addEventListener('input', () => {
+                    if (numberEl.value) rangeEl.value = numberEl.value;
+                    markDirty(numberEl);
+                    scheduleApply();
+                });
+
+                resetEl.addEventListener('click', () => {
+                    numberEl.value = '';
+                    rangeEl.value = initialRangeValue;
+                    clearDirty(numberEl);
+                    scheduleApply();
+                });
+            };
+
+            const setNumberPair = (numberEl, rangeEl, v, { dirty = true } = {}) => {
+                if (!numberEl) return;
+                const s = v == null ? '' : String(v);
+                numberEl.value = s;
+                if (rangeEl) rangeEl.value = s;
+                if (dirty) markDirty(numberEl);
+            };
+
+            const resetNumberControl = (numberEl, rangeEl) => {
+                if (!numberEl) return;
+                numberEl.value = '';
+                if (rangeEl) {
+                    const iv = (rangeEl.dataset && typeof rangeEl.dataset.initialValue === 'string')
+                        ? rangeEl.dataset.initialValue
+                        : (typeof rangeEl.defaultValue === 'string' ? rangeEl.defaultValue : String(rangeEl.value));
+                    rangeEl.value = iv;
+                }
+                clearDirty(numberEl);
+            };
+
+            const setNumberControl = (numberEl, rangeEl, v) => {
+                if (v == null || v === '') {
+                    resetNumberControl(numberEl, rangeEl);
+                    return;
+                }
+                setNumberPair(numberEl, rangeEl, v, { dirty: true });
+            };
+
+            const CONTROL_DEFAULTS = {
+                elementKind: 'text',
+                mode: 'static',
+                value: '',
+                format: 'HH:mm:ss',
+                diff: '',
+                sec: '',
+
+                interval: '',
+                duration: '',
+                minDigits: '',
+                shuffleTime: '',
+                randMin: '',
+                randMax: '',
+
+                halfHead: '',
+                halfTail: '',
+                easing: '',
+
+                atomic: false,
+                stack: false,
+                alignWidth: false,
+                repeat: false,
+                click: true,
+                autostart: false,
+                light: false,
+                rand: false,
+                live: true,
+            };
+
+            const applyControlsPreset = (partial) => {
+                const base = { ...CONTROL_DEFAULTS, value: formatPresetValue(getPresets().static) };
+                const p = { ...base, ...(partial || {}) };
+
+                if (elementKind) elementKind.value = p.elementKind;
+                if (mode) mode.value = p.mode;
+                if (value) value.value = String(p.value ?? '');
+                if (format) format.value = String(p.format ?? '');
+                if (diff) diff.value = String(p.diff ?? '');
+                if (sec) sec.value = String(p.sec ?? '');
+
+                setNumberControl(interval, intervalRange, p.interval);
+                setNumberControl(duration, durationRange, p.duration);
+                setNumberControl(shuffleTime, shuffleTimeRange, p.shuffleTime);
+                setNumberControl(randMin, randMinRange, p.randMin);
+                setNumberControl(randMax, randMaxRange, p.randMax);
+
+                if (minDigits) {
+                    minDigits.value = String(p.minDigits ?? '');
+                    if (minDigits.value === '') clearDirty(minDigits);
+                    else markDirty(minDigits);
+                }
+
+                if (halfHead) halfHead.value = String(p.halfHead ?? '');
+                if (halfTail) halfTail.value = String(p.halfTail ?? '');
+                if (easing) easing.value = String(p.easing ?? '');
+
+                if (atomic) atomic.checked = !!p.atomic;
+                if (stack) stack.checked = !!p.stack;
+                if (alignWidth) alignWidth.checked = !!p.alignWidth;
+                if (repeat) repeat.checked = !!p.repeat;
+                if (click) click.checked = !!p.click;
+                if (autostart) autostart.checked = !!p.autostart;
+                if (light) light.checked = !!p.light;
+                if (rand) rand.checked = !!p.rand;
+                if (live) live.checked = !!p.live;
+
+                syncElementUi();
+                syncModeUi();
+                scheduleApply({ force: true });
+            };
+
+            const bindColorReset = ({ colorEl, resetEl }) => {
+                if (!colorEl || !resetEl) return;
+                colorEl.addEventListener('input', () => {
+                    markDirty(colorEl);
+                    scheduleApply();
+                });
+                resetEl.addEventListener('click', () => {
+                    colorEl.value = colorEl.defaultValue;
+                    clearDirty(colorEl);
+                    scheduleApply();
+                });
+            };
+
+            const copyText = async (text) => {
+                const s = String(text ?? '');
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(s);
+                        return true;
+                    }
+                } catch (_) {
+                    // fallback below
+                }
+
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = s;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    ta.style.top = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    return !!ok;
+                } catch {
+                    return false;
+                }
+            };
+
+            const setOrRemove = (el, name, v) => {
+                if (!el) return;
+                if (v == null || v === false || v === '') el.removeAttribute(name);
+                else el.setAttribute(name, v === true ? '' : String(v));
+            };
+
+            const pad2 = (n) => String(Math.trunc(n)).padStart(2, '0');
+            const formatLocalIsoNoTz = (d) => {
+                const y = d.getFullYear();
+                const m = pad2(d.getMonth() + 1);
+                const dd = pad2(d.getDate());
+                const hh = pad2(d.getHours());
+                const mi = pad2(d.getMinutes());
+                const ss = pad2(d.getSeconds());
+                return `${y}-${m}-${dd}T${hh}:${mi}:${ss}`;
+            };
+
+            const syncModeUi = () => {
+                const k = elementKind ? String(elementKind.value || 'text') : 'text';
+                if (k !== 'text') return;
+
+                const m = mode.value;
+                const isStatic = m === 'static';
+                const isSequence = m === 'sequence';
+                const isShuffle = m === 'shuffle';
+
+                if (shuffleTimeRow) shuffleTimeRow.style.display = isShuffle ? '' : 'none';
+
+                if (valueLabel) valueLabel.textContent = (isSequence || isShuffle) ? t('label.valueJson') : t('label.value');
+
+                // Mode-specific toggle visibility
+                if (stackLabel) stackLabel.style.display = isStatic ? 'none' : '';
+                if (alignWidthLabel) alignWidthLabel.style.display = isStatic ? 'none' : '';
+                if (repeatLabel) repeatLabel.style.display = isSequence ? '' : 'none';
+                if (randLabel) randLabel.style.display = isStatic ? '' : 'none';
+
+                const showRandDetails = isStatic && !!(rand && rand.checked);
+                if (randMinRow) randMinRow.style.display = showRandDetails ? '' : 'none';
+                if (randMaxRow) randMaxRow.style.display = showRandDetails ? '' : 'none';
+            };
+
+            const syncElementUi = () => {
+                const k = elementKind ? String(elementKind.value || 'text') : 'text';
+                const isClock = k === 'clock';
+                const isTimer = k === 'timer';
+                const isText = k === 'text';
+
+                // Preview toggle
+                if (demoText) demoText.style.display = isText ? '' : 'none';
+                if (demoClock) demoClock.style.display = isClock ? '' : 'none';
+                if (demoTimerBox) demoTimerBox.style.display = isTimer ? '' : 'none';
+
+                // Controls toggle
+                if (modeRow) modeRow.style.display = isText ? '' : 'none';
+                if (valueRow) valueRow.style.display = isText ? '' : 'none';
+                if (valuePresets) valuePresets.style.display = 'none';
+                if (formatRow) formatRow.style.display = (isClock || isTimer) ? '' : 'none';
+                if (diffRow) diffRow.style.display = isClock ? '' : 'none';
+                if (secRow) secRow.style.display = isTimer ? '' : 'none';
+                if (formatPresets) formatPresets.style.display = 'none';
+                if (timerPresets) timerPresets.style.display = 'none';
+                if (intervalRow) intervalRow.style.display = isText ? '' : 'none';
+
+                if (minDigitsRow) minDigitsRow.style.display = (isClock || isTimer) ? '' : 'none';
+
+                if (shuffleTimeRow) shuffleTimeRow.style.display = isText ? '' : 'none';
+                if (randMinRow) randMinRow.style.display = isText ? '' : 'none';
+                if (randMaxRow) randMaxRow.style.display = isText ? '' : 'none';
+
+                if (stackLabel) stackLabel.style.display = isText ? '' : 'none';
+                if (alignWidthLabel) alignWidthLabel.style.display = isText ? '' : 'none';
+
+                if (repeatLabel) repeatLabel.style.display = isText ? '' : 'none';
+                if (randLabel) randLabel.style.display = isText ? '' : 'none';
+                if (clickLabel) clickLabel.style.display = (isText || isTimer) ? '' : 'none';
+                if (autostartLabel) autostartLabel.style.display = (isText || isTimer) ? '' : 'none';
+
+                if (clockHint) clockHint.style.display = isClock ? '' : 'none';
+                if (timerHint) timerHint.style.display = isTimer ? '' : 'none';
+
+                if (textPreset) textPreset.style.display = isText ? '' : 'none';
+                if (clockPreset) clockPreset.style.display = isClock ? '' : 'none';
+                if (timerPreset) timerPreset.style.display = isTimer ? '' : 'none';
+
+                // Remove text-only attrs from clock (keep generated HTML clean)
+                if (isClock && demoClock) {
+                    [
+                        'value', 'interval', 'shuffle-time', 'rand', 'rand-min', 'rand-max', 'repeat',
+                        'click', 'autostart', 'stack', 'align-width',
+                    ].forEach((a) => demoClock.removeAttribute(a));
+                }
+
+                // Remove non-timer attrs from timer (keep generated HTML clean)
+                if (isTimer && demoTimer) {
+                    [
+                        'value', 'interval', 'shuffle-time', 'rand', 'rand-min', 'rand-max', 'repeat',
+                        'stack', 'align-width', 'diff',
+                    ].forEach((a) => demoTimer.removeAttribute(a));
+                }
+            };
+
+            const getTextPresetDefs = () => {
+                const presets = getPresets();
+                return {
+                    static: {
+                        elementKind: 'text',
+                        mode: 'static',
+                        value: formatPresetValue(presets.static),
+                        rand: false,
+                    },
+                    sequence: {
+                        elementKind: 'text',
+                        mode: 'sequence',
+                        value: formatPresetValue(presets.sequence),
+                        autostart: true,
+                        interval: 1200,
+                        duration: 1000,
+                    },
+                    multi: {
+                        elementKind: 'text',
+                        mode: 'sequence',
+                        value: formatPresetValue(presets.multi),
+                        stack: true,
+                        alignWidth: true,
+                        autostart: true,
+                        interval: 1400,
+                        duration: 1000,
+                    },
+                    shuffle: {
+                        elementKind: 'text',
+                        mode: 'shuffle',
+                        value: formatPresetValue(presets.shuffle),
+                        stack: true,
+                        alignWidth: true,
+                        autostart: true,
+                        shuffleTime: 3000,
+                        interval: 180,
+                        duration: 400,
+                    },
+                    rand: {
+                        elementKind: 'text',
+                        mode: 'static',
+                        value: formatPresetValue(presets.rand),
+                        rand: true,
+                        autostart: true,
+                        interval: 600,
+                        duration: 600,
+                        randMin: 5,
+                        randMax: 10,
+                    },
+                };
+            };
+
+            const applyTextPresetKey = (key) => {
+                const k = String(key || '').trim();
+                const defs = getTextPresetDefs();
+                const def = defs[k];
+                if (!def) return;
+                applyControlsPreset(def);
+            };
+
+            const CLOCK_PRESET_DEFS = {
+                'clock-24h': { elementKind: 'clock', format: 'HH:mm:ss', diff: '', halfHead: '', halfTail: '' },
+                'clock-12h-en': { elementKind: 'clock', format: 'ampmHH12:mm:ss', diff: '', halfHead: '2', halfTail: '' },
+                'clock-12h-jp': { elementKind: 'clock', format: 'ampm_jpHH12:mm:ss', diff: '', halfHead: '2', halfTail: '' },
+                'calendar-en': { elementKind: 'clock', format: 'YY/MM/DDddd', diff: '', halfHead: '', halfTail: '' },
+                'calendar-jp': { elementKind: 'clock', format: 'YY/MM/DDddd_jp曜日', diff: '', halfHead: '', halfTail: '' },
+                'diff-eom-hms': ({ endOfMonth }) => ({ elementKind: 'clock', format: 'HHH:mm:ss', diff: formatLocalIsoNoTz(endOfMonth), halfHead: '', halfTail: '' }),
+                'diff-eom-days': ({ endOfMonth }) => ({ elementKind: 'clock', format: 'DDD/HH:mm:ss', diff: formatLocalIsoNoTz(endOfMonth), halfHead: '', halfTail: '' }),
+            };
+
+            const applyClockPresetKey = (key) => {
+                const k = String(key || '').trim();
+                if (!k) return;
+                const now = new Date();
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 0);
+                const def = CLOCK_PRESET_DEFS[k];
+                if (!def) return;
+                const partial = (typeof def === 'function') ? def({ now, endOfMonth }) : def;
+                applyControlsPreset(partial);
+            };
+
+            const TIMER_PRESET_DEFS = {
+                stopwatch: {
+                    elementKind: 'timer',
+                    format: 'sssSS',
+                    sec: '',
+                    click: true,
+                    minDigits: 3,
+                    halfTail: 2,
+                },
+                countdown: {
+                    elementKind: 'timer',
+                    format: 'sssSS',
+                    sec: 100,
+                    click: true,
+                    minDigits: 3,
+                    halfTail: 2,
+                },
+            };
+
+            const applyTimerPresetKey = (key) => {
+                const k = String(key || '').trim();
+                const def = TIMER_PRESET_DEFS[k];
+                if (!def) return;
+                applyControlsPreset(def);
+            };
+
+            const applyDefaultPresetForElement = (k) => {
+                const kind = String(k || 'text');
+                if (kind === 'clock') {
+                    const fallback = (clockPreset && clockPreset.options.length) ? clockPreset.options[0].value : DEFAULT_PRESET_KEYS.clock;
+                    const next = (clockPreset && clockPreset.querySelector(`option[value=\"${DEFAULT_PRESET_KEYS.clock}\"]`))
+                        ? DEFAULT_PRESET_KEYS.clock
+                        : fallback;
+                    if (clockPreset) clockPreset.value = next;
+                    applyClockPresetKey(next);
+                } else if (kind === 'timer') {
+                    const fallback = (timerPreset && timerPreset.options.length) ? timerPreset.options[0].value : DEFAULT_PRESET_KEYS.timer;
+                    const next = (timerPreset && timerPreset.querySelector(`option[value=\"${DEFAULT_PRESET_KEYS.timer}\"]`))
+                        ? DEFAULT_PRESET_KEYS.timer
+                        : fallback;
+                    if (timerPreset) timerPreset.value = next;
+                    applyTimerPresetKey(next);
+                } else {
+                    const fallback = (textPreset && textPreset.options.length) ? textPreset.options[0].value : DEFAULT_PRESET_KEYS.text;
+                    const next = (textPreset && textPreset.querySelector(`option[value=\"${DEFAULT_PRESET_KEYS.text}\"]`))
+                        ? DEFAULT_PRESET_KEYS.text
+                        : fallback;
+                    if (textPreset) textPreset.value = next;
+                    applyTextPresetKey(next);
+                }
+            };
+
+            const escapeAttrValue = (s, quoteChar) => {
+                let out = String(s);
+                out = out.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+                if (quoteChar === '"') out = out.replaceAll('"', '&quot;');
+                if (quoteChar === "'") out = out.replaceAll("'", '&apos;');
+                return out;
+            };
+
+            const formatAttr = (name, rawValue) => {
+                const raw = String(rawValue);
+                // JSONなどを value='[...]' として貼れるようにする (&quot; を避ける)
+                if (raw.includes('"') && !raw.includes("'")) {
+                    return `${name}='${escapeAttrValue(raw, "'")}'`;
+                }
+                return `${name}="${escapeAttrValue(raw, '"')}"`;
+            };
+
+            const buildHtmlSnippet = () => {
+                const demo = activeDemo();
+                const attrs = [];
+                for (const { name, value } of Array.from(demo.attributes)) {
+                    if (name === 'id') continue;
+                    if (name === 'style') continue;
+                    // a11y attrs are auto-managed by the components; embedding them freezes dynamic values (e.g. clock time).
+                    if (name === 'aria-label') continue;
+                    if (name === 'role') continue;
+                    if (value === '') attrs.push(name);
+                    else attrs.push(formatAttr(name, value));
+                }
+
+                const stylePairs = [];
+                for (const varName of STYLE_VARS) {
+                    const v = demo.style.getPropertyValue(varName);
+                    const trimmed = v == null ? '' : String(v).trim();
+                    if (!trimmed) continue;
+                    stylePairs.push(`${varName}: ${trimmed}`);
+                }
+                if (stylePairs.length) {
+                    attrs.push(`style="${escapeAttrValue(stylePairs.join('; '), '"')}"`);
+                }
+                const k = elementKind ? String(elementKind.value || 'text') : 'text';
+                const tag = (k === 'clock') ? 'patapata-clock' : (k === 'timer') ? 'patapata-timer' : 'patapata-text';
+
+                if (k === 'timer') {
+                    const controlCss = [
+                        '/* patapata-control demo (same as Preview) */',
+                        '.pp-timer-demo {',
+                        '  display: flex;',
+                        '  gap: 10px;',
+                        '  align-items: center;',
+                        '  flex-wrap: wrap;',
+                        '}',
+                        '.pp-controls {',
+                        '  display: flex;',
+                        '  gap: 8px;',
+                        '  flex-wrap: wrap;',
+                        '  align-items: center;',
+                        '}',
+                        '.pp-controls patapata-control {',
+                        '  display: inline-block;',
+                        '  padding: 6px 10px;',
+                        '  border: 1px solid rgba(17, 24, 39, 0.16);',
+                        '  border-radius: 10px;',
+                        '  background: #ffffff;',
+                        '  cursor: pointer;',
+                        '  user-select: none;',
+                        '  line-height: 1;',
+                        '}',
+                        '.pp-controls patapata-control:hover {',
+                        '  background: #f3f4f6;',
+                        '}',
+                    ].join('\n');
+
+                    const comment = t('snippet.timerControlComment');
+
+                    return [
+                        comment,
+                        '<style>',
+                        controlCss,
+                        '</style>',
+                        '',
+                        `<div class="pp-timer-demo">`,
+                        `  <${tag} id="p1" ${attrs.join(' ')}></${tag}>`,
+                        '  <div class="pp-controls">',
+                        '    <patapata-control for="p1" action="start">start</patapata-control>',
+                        '    <patapata-control for="p1" action="stop">stop</patapata-control>',
+                        '    <patapata-control for="p1" action="reset">reset</patapata-control>',
+                        '    <patapata-control for="p1" action="toggle">toggle</patapata-control>',
+                        '  </div>',
+                        '</div>',
+                    ].join('\n');
+                }
+
+                return `<${tag} ${attrs.join(' ')}></${tag}>`;
+            };
+
+            const buildCssPresetText = () => {
+                const pairs = [];
+                for (const varName of STYLE_VARS) {
+                    const v = demoText.style.getPropertyValue(varName);
+                    const trimmed = v == null ? '' : String(v).trim();
+                    if (!trimmed) continue;
+                    pairs.push(`  ${varName}: ${trimmed};`);
+                }
+
+                return [
+                    t('snippet.cssPresetComment'),
+                    '[custom-patapata] {',
+                    ...(pairs.length ? pairs : ['  /* (no overrides) */']),
+                    '}',
+                ].join('\n');
+            };
+
+            const buildCssHtmlSnippet = () => {
+                const demo = activeDemo();
+                const attrs = [];
+                for (const { name, value } of Array.from(demo.attributes)) {
+                    if (name === 'id') continue;
+                    if (name === 'style') continue;
+                    // a11y attrs are auto-managed by the components; embedding them freezes dynamic values (e.g. clock time).
+                    if (name === 'aria-label') continue;
+                    if (name === 'role') continue;
+                    if (value === '') attrs.push(name);
+                    else attrs.push(formatAttr(name, value));
+                }
+
+                // Ensure the selector hook is present.
+                attrs.unshift('custom-patapata');
+
+                const cssText = buildCssPresetText();
+                const k = elementKind ? String(elementKind.value || 'text') : 'text';
+                const tag = (k === 'clock') ? 'patapata-clock' : (k === 'timer') ? 'patapata-timer' : 'patapata-text';
+
+                if (k === 'timer') {
+                    const controlCss = [
+                        '/* patapata-control demo (same as Preview) */',
+                        '.pp-timer-demo {',
+                        '  display: flex;',
+                        '  gap: 10px;',
+                        '  align-items: center;',
+                        '  flex-wrap: wrap;',
+                        '}',
+                        '.pp-controls {',
+                        '  display: flex;',
+                        '  gap: 8px;',
+                        '  flex-wrap: wrap;',
+                        '  align-items: center;',
+                        '}',
+                        '.pp-controls patapata-control {',
+                        '  display: inline-block;',
+                        '  padding: 6px 10px;',
+                        '  border: 1px solid rgba(17, 24, 39, 0.16);',
+                        '  border-radius: 10px;',
+                        '  background: #ffffff;',
+                        '  cursor: pointer;',
+                        '  user-select: none;',
+                        '  line-height: 1;',
+                        '}',
+                        '.pp-controls patapata-control:hover {',
+                        '  background: #f3f4f6;',
+                        '}',
+                    ].join('\n');
+
+                    const comment = t('snippet.timerControlComment');
+
+                    return [
+                        '<style>',
+                        cssText,
+                        '',
+                        controlCss,
+                        '</style>',
+                        '',
+                        comment,
+                        `<div class="pp-timer-demo">`,
+                        `  <${tag} id="p1" ${attrs.join(' ')}></${tag}>`,
+                        '  <div class="pp-controls">',
+                        '    <patapata-control for="p1" action="start">start</patapata-control>',
+                        '    <patapata-control for="p1" action="stop">stop</patapata-control>',
+                        '    <patapata-control for="p1" action="reset">reset</patapata-control>',
+                        '    <patapata-control for="p1" action="toggle">toggle</patapata-control>',
+                        '  </div>',
+                        '</div>',
+                    ].join('\n');
+                }
+
+                return `<style>\n${cssText}\n</style>\n\n<${tag} ${attrs.join(' ')}></${tag}>`;
+            };
+
+            const setStyleVar = (varName, cssValue) => {
+                const v = cssValue == null ? '' : String(cssValue).trim();
+                applyToBoth((el) => {
+                    if (!el) return;
+                    if (!v) el.style.removeProperty(varName);
+                    else el.style.setProperty(varName, v);
+                });
+            };
+
+            const numberInput = (el) => {
+                if (!el || !('value' in el)) return null;
+                if (!el.value) return null;
+                const n = Number(el.value);
+                return Number.isFinite(n) ? n : null;
+            };
+
+            const applyStyles = () => {
+                const w = numberInput(cardWidthPx);
+                setStyleVar('--patapata-card-width', isDirty(cardWidthPx) && w != null ? `${w}px` : null);
+
+                const hRatio = numberInput(cardHeightRatio);
+                setStyleVar('--patapata-card-height', isDirty(cardHeightRatio) && hRatio != null ? `calc(var(--patapata-card-width) * ${hRatio})` : null);
+
+                const fs = numberInput(fontScale);
+                setStyleVar('--patapata-card-font-size', isDirty(fontScale) && fs != null ? `calc(var(--patapata-card-width) * ${fs})` : null);
+
+                const fw = numberInput(fontWeight);
+                setStyleVar('--patapata-font-weight', isDirty(fontWeight) && fw != null ? `${fw}` : null);
+
+                // font-family
+                const ff = (fontFamily && fontFamily.value != null) ? String(fontFamily.value).trim() : '';
+                setStyleVar('--patapata-font-family', isDirty(fontFamily) && ff ? ff : null);
+
+                const gs = numberInput(gapScale);
+                setStyleVar('--patapata-display-gap', isDirty(gapScale) && gs != null ? `calc(var(--patapata-card-width) * ${gs})` : null);
+
+                const rs = numberInput(radiusScale);
+                setStyleVar('--patapata-card-radius', isDirty(radiusScale) && rs != null ? `calc(var(--patapata-card-width) * ${rs})` : null);
+
+                setStyleVar('--patapata-panel-top', isDirty(panelTop) && panelTop && panelTop.value ? panelTop.value : null);
+                setStyleVar('--patapata-panel-bottom', isDirty(panelBottom) && panelBottom && panelBottom.value ? panelBottom.value : null);
+                setStyleVar('--patapata-text-color', isDirty(textColor) && textColor && textColor.value ? textColor.value : null);
+                setStyleVar('--patapata-divider', isDirty(dividerColor) && dividerColor && dividerColor.value ? dividerColor.value : null);
+
+                const dsz = numberInput(dividerSizePx);
+                setStyleVar('--patapata-divider-size', isDirty(dividerSizePx) && dsz != null ? `${dsz}px` : null);
+                setStyleVar('--patapata-divider-mode', dividerMode && dividerMode.value ? dividerMode.value : null);
+
+                const esz = numberInput(edgeSizePx);
+                setStyleVar('--patapata-edge-size', isDirty(edgeSizePx) && esz != null ? `${esz}px` : null);
+                setStyleVar('--patapata-edge-color', isDirty(edgeColor) && edgeColor && edgeColor.value ? edgeColor.value : null);
+
+                const inset = numberInput(insetShade);
+                setStyleVar('--patapata-inset-shade-strength', isDirty(insetShade) && inset != null ? `${inset}` : null);
+
+                const ov = numberInput(flipOverhang);
+                setStyleVar('--patapata-flip-overhang', isDirty(flipOverhang) && ov != null ? `${ov}` : null);
+                const sh = numberInput(flipShadow);
+                setStyleVar('--patapata-flip-shadow', isDirty(flipShadow) && sh != null ? `${sh}` : null);
+
+                setStyleVar('--patapata-text-align', textAlign && textAlign.value ? textAlign.value : null);
+                setStyleVar('--patapata-text-valign', textValign && textValign.value ? textValign.value : null);
+
+                const ox = numberInput(offsetX);
+                setStyleVar('--patapata-text-offset-x', isDirty(offsetX) && ox != null ? `${ox}px` : null);
+                const oy = numberInput(offsetY);
+                setStyleVar('--patapata-text-offset-y', isDirty(offsetY) && oy != null ? `${oy}px` : null);
+            };
+
+            const apply = () => {
+                warn.style.display = 'none';
+                warn.textContent = '';
+
+                syncElementUi();
+                syncModeUi();
+
+                const demo = activeDemo();
+                const kind = elementKind ? String(elementKind.value || 'text') : 'text';
+                const isText = kind === 'text';
+                const isClock = kind === 'clock';
+                const isTimer = kind === 'timer';
+
+                const m = mode.value;
+                const raw = value.value;
+                const parsed = parseJsonLoose(raw);
+
+                if (isText) {
+                    setOrRemove(demo, 'value', raw);
+                } else if (isClock) {
+                    const fmt = (format && format.value != null) ? String(format.value) : '';
+                    setOrRemove(demo, 'format', fmt);
+
+                    const diffStr = (diff && diff.value != null) ? String(diff.value) : '';
+                    setOrRemove(demo, 'diff', diffStr);
+                } else if (isTimer) {
+                    const fmt = (format && format.value != null) ? String(format.value) : '';
+                    setOrRemove(demo, 'format', fmt);
+
+                    const secStr = (sec && sec.value != null) ? String(sec.value) : '';
+                    setOrRemove(demo, 'sec', secStr);
+                }
+
+                // Common toggles
+                // (Apply to both so switching element keeps the same settings.)
+                applyToBoth((el) => {
+                    setOrRemove(el, 'atomic', atomic.checked);
+                    setOrRemove(el, 'light', light.checked);
+                });
+
+                // patapata-text layout options (not used for clock)
+                if (demoText) {
+                    const isStatic = m === 'static';
+                    setOrRemove(demoText, 'stack', !isStatic && stack && stack.checked);
+                    setOrRemove(demoText, 'align-width', !isStatic && alignWidth && alignWidth.checked);
+                }
+
+                // patapata-text / patapata-timer only
+                if (!isClock) {
+                    setOrRemove(demo, 'click', click.checked);
+                    setOrRemove(demo, 'autostart', autostart.checked);
+                }
+
+                // Numbers (override only when touched)
+                if (isText) {
+                    setOrRemove(demo, 'interval', isDirty(interval) && interval.value ? Number(interval.value) : null);
+                }
+                setOrRemove(demo, 'duration', isDirty(duration) && duration.value ? Number(duration.value) : null);
+
+                // min-digits (clock/timer)
+                if (minDigits) {
+                    const mdRaw = isDirty(minDigits) && minDigits.value !== '' ? Number(minDigits.value) : null;
+                    const md = (mdRaw != null && Number.isFinite(mdRaw) && mdRaw >= 0) ? Math.floor(mdRaw) : null;
+                    if (demoText) setOrRemove(demoText, 'min-digits', null);
+                    if (demoClock) setOrRemove(demoClock, 'min-digits', md);
+                    if (demoTimer) setOrRemove(demoTimer, 'min-digits', md);
+                }
+
+                // Half-size digits (apply to both so switching element keeps the same settings.)
+                applyToBoth((el) => {
+                    const hh = (halfHead && halfHead.value !== '') ? Number(halfHead.value) : null;
+                    const ht = (halfTail && halfTail.value !== '') ? Number(halfTail.value) : null;
+                    setOrRemove(el, 'half-head', hh != null && Number.isFinite(hh) && hh > 0 ? Math.floor(hh) : null);
+                    setOrRemove(el, 'half-tail', ht != null && Number.isFinite(ht) && ht > 0 ? Math.floor(ht) : null);
+                });
+
+                // Animation easing
+                setOrRemove(demo, 'easing', easing && easing.value ? String(easing.value) : null);
+
+                // Mode-specific
+                if (isText) {
+                    const isStatic = m === 'static';
+                    const isSequence = m === 'sequence';
+                    const isShuffle = m === 'shuffle';
+
+                    // NOTE: patapata-text treats JSON array value as sequence input.
+                    if (isStatic && Array.isArray(parsed)) {
+                        warn.textContent = t('warn.jsonDisablesRand');
+                        warn.style.display = '';
+                    }
+
+                    // rand effect is a static-mode option
+                    setOrRemove(demo, 'rand', isStatic && rand && rand.checked);
+
+                    if (isStatic && rand && rand.checked) {
+                        setOrRemove(demo, 'rand-min', isDirty(randMin) && randMin.value ? Number(randMin.value) : null);
+                        setOrRemove(demo, 'rand-max', isDirty(randMax) && randMax.value ? Number(randMax.value) : null);
+                    } else {
+                        setOrRemove(demo, 'rand-min', null);
+                        setOrRemove(demo, 'rand-max', null);
+                    }
+
+                    if (isShuffle) {
+                        const st = shuffleTime.value ? Number(shuffleTime.value) : null;
+                        setOrRemove(demo, 'shuffle-time', isDirty(shuffleTime) && st != null ? st : null);
+                        setOrRemove(demo, 'repeat', false);
+                        if (parsed == null) {
+                            warn.textContent = t('warn.shuffleNeedsJson');
+                            warn.style.display = '';
+                        }
+                    } else {
+                        setOrRemove(demo, 'shuffle-time', null);
+                    }
+
+                    if (isSequence) {
+                        setOrRemove(demo, 'repeat', repeat.checked);
+                        if (parsed == null) {
+                            warn.textContent = t('warn.sequenceNeedsJson');
+                            warn.style.display = '';
+                        }
+                    } else {
+                        setOrRemove(demo, 'repeat', false);
+                    }
+                }
+
+                applyStyles();
+                code.textContent = buildHtmlSnippet();
+                codeCssHtml.textContent = buildCssHtmlSnippet();
+            };
+
+            // Bind slider pairs
+            bindNumberSlider({ numberEl: interval, rangeEl: intervalRange, resetEl: intervalReset, defaultRangeValue: 2000 });
+            bindNumberSlider({ numberEl: duration, rangeEl: durationRange, resetEl: durationReset, defaultRangeValue: 3000 });
+            bindNumberSlider({ numberEl: shuffleTime, rangeEl: shuffleTimeRange, resetEl: shuffleTimeReset, defaultRangeValue: 1800 });
+            bindNumberSlider({ numberEl: randMin, rangeEl: randMinRange, resetEl: randMinReset, defaultRangeValue: 5 });
+            bindNumberSlider({ numberEl: randMax, rangeEl: randMaxRange, resetEl: randMaxReset, defaultRangeValue: 10 });
+
+            bindNumberSlider({ numberEl: cardWidthPx, rangeEl: cardWidthPxRange, resetEl: cardWidthPxReset, defaultRangeValue: 80 });
+            bindNumberSlider({ numberEl: cardHeightRatio, rangeEl: cardHeightRatioRange, resetEl: cardHeightRatioReset, defaultRangeValue: 1.2 });
+            bindNumberSlider({ numberEl: fontScale, rangeEl: fontScaleRange, resetEl: fontScaleReset, defaultRangeValue: 0.9 });
+            bindNumberSlider({ numberEl: fontWeight, rangeEl: fontWeightRange, resetEl: fontWeightReset, defaultRangeValue: 700 });
+            bindNumberSlider({ numberEl: gapScale, rangeEl: gapScaleRange, resetEl: gapScaleReset, defaultRangeValue: 0.06 });
+            bindNumberSlider({ numberEl: radiusScale, rangeEl: radiusScaleRange, resetEl: radiusScaleReset, defaultRangeValue: 0.08 });
+            bindNumberSlider({ numberEl: dividerSizePx, rangeEl: dividerSizePxRange, resetEl: dividerSizePxReset, defaultRangeValue: 2 });
+            bindNumberSlider({ numberEl: edgeSizePx, rangeEl: edgeSizePxRange, resetEl: edgeSizePxReset, defaultRangeValue: 2 });
+            bindNumberSlider({ numberEl: insetShade, rangeEl: insetShadeRange, resetEl: insetShadeReset, defaultRangeValue: 1 });
+            bindNumberSlider({ numberEl: flipOverhang, rangeEl: flipOverhangRange, resetEl: flipOverhangReset, defaultRangeValue: 0.06 });
+            bindNumberSlider({ numberEl: flipShadow, rangeEl: flipShadowRange, resetEl: flipShadowReset, defaultRangeValue: 0.35 });
+            bindNumberSlider({ numberEl: offsetX, rangeEl: offsetXRange, resetEl: offsetXReset, defaultRangeValue: 0 });
+            bindNumberSlider({ numberEl: offsetY, rangeEl: offsetYRange, resetEl: offsetYReset, defaultRangeValue: 0 });
+
+            bindColorReset({ colorEl: panelTop, resetEl: panelTopReset });
+            bindColorReset({ colorEl: panelBottom, resetEl: panelBottomReset });
+            bindColorReset({ colorEl: textColor, resetEl: textColorReset });
+            bindColorReset({ colorEl: dividerColor, resetEl: dividerColorReset });
+            bindColorReset({ colorEl: edgeColor, resetEl: edgeColorReset });
+
+            // font-family control
+            const fontFamilyPreset = $('fontFamilyPreset');
+            const fontFamily = $('fontFamily');
+            const fontFamilyReset = $('fontFamilyReset');
+            const syncFontPresetFromInput = () => {
+                const v = String(fontFamily.value || '').trim();
+                if (!v) {
+                    fontFamilyPreset.value = '';
+                    return;
+                }
+                const found = Array.from(fontFamilyPreset.options).some((o) => o.value === v);
+                fontFamilyPreset.value = found ? v : '';
+            };
+
+            fontFamily.addEventListener('input', () => {
+                markDirty(fontFamily);
+                syncFontPresetFromInput();
+                scheduleApply({ force: true });
+            });
+
+            fontFamilyPreset.addEventListener('change', () => {
+                const v = String(fontFamilyPreset.value || '').trim();
+                if (!v) {
+                    fontFamily.value = '';
+                    clearDirty(fontFamily);
+                } else {
+                    fontFamily.value = v;
+                    markDirty(fontFamily);
+                }
+                scheduleApply({ force: true });
+            });
+
+            fontFamilyReset.addEventListener('click', () => {
+                fontFamilyPreset.value = '';
+                fontFamily.value = '';
+                clearDirty(fontFamily);
+                scheduleApply({ force: true });
+            });
+
+            // easing control
+            if (easingReset) {
+                easingReset.addEventListener('click', () => {
+                    if (easing) easing.value = '';
+                    scheduleApply({ force: true });
+                });
+            }
+
+            // format control (clock)
+            if (formatReset) {
+                formatReset.addEventListener('click', () => {
+                    const k = elementKind ? String(elementKind.value || 'text') : 'text';
+                    if (format) format.value = (k === 'timer') ? 'HHH:mm:ss' : 'HH:mm:ss';
+                    scheduleApply({ force: true });
+                });
+            }
+
+            if (halfHeadReset) {
+                halfHeadReset.addEventListener('click', () => {
+                    if (halfHead) halfHead.value = '';
+                    scheduleApply({ force: true });
+                });
+            }
+            if (halfTailReset) {
+                halfTailReset.addEventListener('click', () => {
+                    if (halfTail) halfTail.value = '';
+                    scheduleApply({ force: true });
+                });
+            }
+
+            // diff control (clock)
+            if (diffReset) {
+                diffReset.addEventListener('click', () => {
+                    if (diff) diff.value = '';
+                    scheduleApply({ force: true });
+                });
+            }
+
+            // min-digits control (clock/timer)
+            if (minDigits) {
+                minDigits.addEventListener('input', () => {
+                    markDirty(minDigits);
+                    scheduleApply();
+                });
+            }
+            if (minDigitsReset) {
+                minDigitsReset.addEventListener('click', () => {
+                    if (minDigits) minDigits.value = '';
+                    clearDirty(minDigits);
+                    scheduleApply({ force: true });
+                });
+            }
+
+            // sec control (timer)
+            if (secReset) {
+                secReset.addEventListener('click', () => {
+                    if (sec) sec.value = '';
+                    scheduleApply({ force: true });
+                });
+            }
+
+            // Element-specific preset dropdowns
+            if (textPreset) {
+                textPreset.addEventListener('change', () => applyTextPresetKey(textPreset.value));
+            }
+            if (clockPreset) {
+                clockPreset.addEventListener('change', () => applyClockPresetKey(clockPreset.value));
+            }
+            if (timerPreset) {
+                timerPreset.addEventListener('change', () => applyTimerPresetKey(timerPreset.value));
+            }
+
+            if (elementKind) {
+                elementKind.addEventListener('change', () => {
+                    applyDefaultPresetForElement(String(elementKind.value || 'text'));
+                    requestAnimationFrame(() => scheduleApply({ force: true }));
+                });
+            }
+
+            ['change', 'input'].forEach((evt) => {
+                document.querySelectorAll('input, select, textarea').forEach((el) => {
+                    el.addEventListener(evt, () => {
+                        if (el === mode) syncModeUi();
+                        if (el === elementKind) syncElementUi();
+                        scheduleApply();
+                    });
+                });
+            });
+
+            // Initial preset (based on current element selection)
+            applyDefaultPresetForElement(String(elementKind ? elementKind.value : 'text'));
+
+            $('apply').addEventListener('click', apply);
+
+            $('styleReset').addEventListener('click', () => {
+                applyToBoth((el) => {
+                    if (!el) return;
+                    for (const v of STYLE_VARS) el.style.removeProperty(v);
+                });
+
+                // Clear inputs back to default (empty)
+                [
+                    cardWidthPxRange,
+                    cardHeightRatioRange,
+                    fontScaleRange,
+                    fontWeightRange,
+                    gapScaleRange,
+                    radiusScaleRange,
+                    dividerSizePxRange,
+                    edgeSizePxRange,
+                    insetShadeRange,
+                    flipOverhangRange,
+                    flipShadowRange,
+                    offsetXRange,
+                    offsetYRange,
+                ].forEach((r) => {
+                    if (r && typeof r.defaultValue === 'string') r.value = r.defaultValue;
+                });
+
+                // Colors back to default (and clear overrides)
+                [panelTop, panelBottom, textColor, dividerColor, edgeColor].forEach((el) => {
+                    if (el && typeof el.defaultValue === 'string') el.value = el.defaultValue;
+                    clearDirty(el);
+                });
+
+                // font-family
+                fontFamilyPreset.value = '';
+                fontFamily.value = '';
+                clearDirty(fontFamily);
+
+                // Clear inputs back to default (empty)
+                [
+                    cardWidthPx,
+                    cardHeightRatio,
+                    fontScale,
+                    fontWeight,
+                    gapScale,
+                    radiusScale,
+                    dividerSizePx,
+                    edgeSizePx,
+                    insetShade,
+                    flipOverhang,
+                    flipShadow,
+                    offsetX,
+                    offsetY,
+                ].forEach((el) => {
+                    el.value = '';
+                    clearDirty(el);
+                });
+
+                dividerMode.value = '';
+                textAlign.value = '';
+                textValign.value = '';
+
+                syncModeUi();
+                if (live.checked) apply();
+                else code.textContent = buildHtmlSnippet();
+            });
+
+            $('copyHtml').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const ok = await copyText(code.textContent);
+                flashButton(btn, ok);
+            });
+
+            $('copyCssHtml').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const ok = await copyText(codeCssHtml.textContent);
+                flashButton(btn, ok);
+            });
+
+            // Setup code blocks
+            const setupLocalCode = $('setupLocalCode');
+            const setupCdnCode = $('setupCdnCode');
+            if (setupLocalCode) setupLocalCode.textContent = SETUP_LOCAL_HTML;
+            if (setupCdnCode) setupCdnCode.textContent = SETUP_CDN_HTML;
+
+            const copySetupLocal = $('copySetupLocal');
+            if (copySetupLocal) {
+                copySetupLocal.addEventListener('click', async (e) => {
+                    const btn = e.currentTarget;
+                    const ok = await copyText(SETUP_LOCAL_HTML);
+                    flashButton(btn, ok);
+                });
+            }
+            const copySetupCdn = $('copySetupCdn');
+            if (copySetupCdn) {
+                copySetupCdn.addEventListener('click', async (e) => {
+                    const btn = e.currentTarget;
+                    const ok = await copyText(SETUP_CDN_HTML);
+                    flashButton(btn, ok);
+                });
+            }
+
+            const initSmokeTest = () => {
+                const smokeOut = $('smokeOut');
+                const runSmoke = $('runSmoke');
+                const clearSmoke = $('clearSmoke');
+                const showCacheStats = $('showCacheStats');
+                const clearCaches = $('clearCaches');
+
+                const writeSmoke = (line) => {
+                    if (!smokeOut) return;
+                    smokeOut.textContent += `${String(line ?? '')}\n`;
+                };
+
+                const clearSmokeLog = () => {
+                    if (smokeOut) smokeOut.textContent = '';
+                };
+
+                const getRuntime = () => {
+                    const rt = window.__patapataRuntime;
+                    return (rt && typeof rt === 'object') ? rt : null;
+                };
+
+                const printCacheStats = () => {
+                    const rt = getRuntime();
+                    if (!rt) {
+                        writeSmoke("cache: __patapataRuntime not found (enable: add ?ppdebug=1 or set localStorage.patapataDebug='1' and reload)");
+                        return;
+                    }
+                    if (typeof rt.getCacheStats !== 'function') {
+                        writeSmoke('cache: runtime has no getCacheStats()');
+                        return;
+                    }
+                    try {
+                        const s = rt.getCacheStats();
+                        writeSmoke(`cache: ${JSON.stringify(s)}`);
+                    } catch (e) {
+                        writeSmoke(`cache: ERROR ${e && e.stack ? e.stack : String(e)}`);
+                    }
+                };
+
+                const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+                const assert = (cond, message) => {
+                    if (!cond) throw new Error(message || 'assertion failed');
+                };
+
+                const mustHaveCanvas = (el) => {
+                    if (!el) throw new Error('element is null');
+                    const root = el.shadowRoot;
+                    if (!root) throw new Error(`${el.tagName.toLowerCase()} has no shadowRoot`);
+                    const c = root.querySelector('canvas');
+                    if (!c) throw new Error(`${el.tagName.toLowerCase()} has no canvas`);
+                    if (!(c.width > 0 && c.height > 0)) {
+                        throw new Error(`${el.tagName.toLowerCase()} canvas size is invalid: ${c.width}x${c.height}`);
+                    }
+                };
+
+                const toggleAttrs = (el, attrs, enabled) => {
+                    for (const a of attrs) {
+                        if (enabled) el.setAttribute(a, '');
+                        else el.removeAttribute(a);
+                    }
+                };
+
+                const runSmokeOnce = async () => {
+                    clearSmokeLog();
+                    writeSmoke(`[${new Date().toLocaleString()}] smoke test start`);
+
+                    printCacheStats();
+
+                    const host = document.createElement('div');
+                    host.style.cssText = 'position: fixed; left: -99999px; top: 0; width: 10px; height: 10px; overflow: hidden;';
+                    document.body.appendChild(host);
+
+                    try {
+                        const t = document.createElement('patapata-text');
+                        t.setAttribute('value', 'あA9🙂');
+                        host.appendChild(t);
+                        await sleep(50);
+                        mustHaveCanvas(t);
+                        // a11y: auto aria-label should reflect rendered value.
+                        assert(t.getAttribute('aria-label') === 'あA9🙂', `patapata-text aria-label mismatch: ${t.getAttribute('aria-label')}`);
+                        assert(t.getAttribute('role') === 'img', `patapata-text role mismatch: ${t.getAttribute('role')}`);
+                        writeSmoke('patapata-text: created');
+
+                        // a11y: user-provided aria-label should not be overwritten.
+                        t.setAttribute('aria-label', 'manual');
+                        t.setAttribute('value', 'ZZ');
+                        await sleep(80);
+                        mustHaveCanvas(t);
+                        assert(t.getAttribute('aria-label') === 'manual', `patapata-text aria-label overwritten: ${t.getAttribute('aria-label')}`);
+                        writeSmoke('patapata-text: a11y aria-label OK');
+
+                        toggleAttrs(t, ['atomic', 'light', 'stack', 'align-width'], true);
+                        t.setAttribute('half-head', '2');
+                        t.setAttribute('half-tail', '2');
+                        t.setAttribute('interval', '120');
+                        t.setAttribute('duration', '180');
+                        await sleep(120);
+                        mustHaveCanvas(t);
+                        writeSmoke('patapata-text: toggled attrs');
+
+                        toggleAttrs(t, ['atomic', 'light', 'stack', 'align-width'], false);
+                        t.removeAttribute('half-head');
+                        t.removeAttribute('half-tail');
+                        await sleep(60);
+                        mustHaveCanvas(t);
+                        writeSmoke('patapata-text: toggled back');
+
+                        const c = document.createElement('patapata-clock');
+                        c.setAttribute('format', 'HH:mm:ss');
+                        c.setAttribute('duration', '200');
+                        host.appendChild(c);
+                        await sleep(80);
+                        mustHaveCanvas(c);
+                        // a11y: clock should produce a non-empty aria-label.
+                        assert((c.getAttribute('aria-label') || '').length > 0, `patapata-clock aria-label missing: ${c.getAttribute('aria-label')}`);
+                        assert((c.getAttribute('role') || '') === 'img', `patapata-clock role mismatch: ${c.getAttribute('role')}`);
+                        writeSmoke('patapata-clock: created');
+
+                        // a11y: user-provided aria-label should not be overwritten (clock keeps ticking).
+                        c.setAttribute('aria-label', 'manual');
+                        await sleep(120);
+                        mustHaveCanvas(c);
+                        assert(c.getAttribute('aria-label') === 'manual', `patapata-clock aria-label overwritten: ${c.getAttribute('aria-label')}`);
+                        writeSmoke('patapata-clock: a11y aria-label OK');
+                        c.setAttribute('diff', '+3');
+                        await sleep(80);
+                        mustHaveCanvas(c);
+                        writeSmoke('patapata-clock: diff set');
+
+                        const tm = document.createElement('patapata-timer');
+                        tm.setAttribute('format', 'HHH:mm:ss');
+                        tm.setAttribute('duration', '200');
+                        tm.setAttribute('sec', '5');
+                        host.appendChild(tm);
+                        await sleep(80);
+                        mustHaveCanvas(tm);
+                        // a11y: timer should produce a non-empty aria-label.
+                        assert((tm.getAttribute('aria-label') || '').length > 0, `patapata-timer aria-label missing: ${tm.getAttribute('aria-label')}`);
+                        assert((tm.getAttribute('role') || '') === 'img', `patapata-timer role mismatch: ${tm.getAttribute('role')}`);
+                        writeSmoke('patapata-timer: created');
+
+                        // a11y: user-provided aria-label should not be overwritten while timer runs.
+                        tm.setAttribute('aria-label', 'manual');
+                        tm.setAttribute('autostart', '');
+                        await sleep(200);
+                        mustHaveCanvas(tm);
+                        assert(tm.getAttribute('aria-label') === 'manual', `patapata-timer aria-label overwritten: ${tm.getAttribute('aria-label')}`);
+                        writeSmoke('patapata-timer: autostart toggled');
+                        writeSmoke('patapata-timer: a11y aria-label OK');
+                    } finally {
+                        host.remove();
+                    }
+
+                    printCacheStats();
+                    writeSmoke('OK');
+                };
+
+                if (clearSmoke) clearSmoke.addEventListener('click', clearSmokeLog);
+                if (showCacheStats) showCacheStats.addEventListener('click', printCacheStats);
+                if (clearCaches) {
+                    clearCaches.addEventListener('click', () => {
+                        const rt = getRuntime();
+                        if (!rt) {
+                            writeSmoke("cache: __patapataRuntime not found (enable: add ?ppdebug=1 or set localStorage.patapataDebug='1' and reload)");
+                            return;
+                        }
+                        if (typeof rt.clearCaches !== 'function') {
+                            writeSmoke('cache: runtime has no clearCaches()');
+                            return;
+                        }
+                        try {
+                            rt.clearCaches();
+                            writeSmoke('cache: cleared');
+                            printCacheStats();
+                        } catch (e) {
+                            writeSmoke(`cache: ERROR ${e && e.stack ? e.stack : String(e)}`);
+                        }
+                    });
+                }
+                if (runSmoke) {
+                    runSmoke.addEventListener('click', async () => {
+                        try {
+                            runSmoke.disabled = true;
+                            await runSmokeOnce();
+                        } catch (e) {
+                            writeSmoke(`ERROR: ${e && e.stack ? e.stack : String(e)}`);
+                        } finally {
+                            runSmoke.disabled = false;
+                        }
+                    });
+                }
+            };
+
+            if (debugEnabled) initSmokeTest();
+        })();
+    </script>
+
+</body>
+
+</html>

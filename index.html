@@ -2657,7 +2657,7 @@
                         c.setAttribute('diff', '+3');
                         await sleep(80);
                         mustHaveCanvas(c);
-                        writeSmoke('patapata-clock: diff set');
+                        writeSmoke('patapata-clock: invalid diff fallback OK');
 
                         const tm = document.createElement('patapata-timer');
                         tm.setAttribute('format', 'HHH:mm:ss');
@@ -2679,6 +2679,30 @@
                         assert(tm.getAttribute('aria-label') === 'manual', `patapata-timer aria-label overwritten: ${tm.getAttribute('aria-label')}`);
                         writeSmoke('patapata-timer: autostart toggled');
                         writeSmoke('patapata-timer: a11y aria-label OK');
+
+                        const ctrl = document.createElement('patapata-control');
+                        ctrl.setAttribute('for', 'missing-smoke-target');
+                        ctrl.textContent = 'toggle';
+                        host.appendChild(ctrl);
+                        await sleep(0);
+                        assert(ctrl.getAttribute('role') === 'button', `patapata-control role mismatch: ${ctrl.getAttribute('role')}`);
+                        assert(ctrl.getAttribute('tabindex') === '0', `patapata-control tabindex mismatch: ${ctrl.getAttribute('tabindex')}`);
+                        ctrl.setAttribute('disabled', '');
+                        assert(ctrl.getAttribute('aria-disabled') === 'true', `patapata-control aria-disabled mismatch: ${ctrl.getAttribute('aria-disabled')}`);
+                        assert(ctrl.getAttribute('tabindex') === '-1', `patapata-control disabled tabindex mismatch: ${ctrl.getAttribute('tabindex')}`);
+                        ctrl.removeAttribute('disabled');
+                        assert(!ctrl.hasAttribute('aria-disabled'), `patapata-control aria-disabled not removed: ${ctrl.getAttribute('aria-disabled')}`);
+                        assert(ctrl.getAttribute('tabindex') === '0', `patapata-control tabindex not restored: ${ctrl.getAttribute('tabindex')}`);
+                        const ctrlInitialDisabled = document.createElement('patapata-control');
+                        ctrlInitialDisabled.setAttribute('disabled', '');
+                        ctrlInitialDisabled.textContent = 'disabled';
+                        host.appendChild(ctrlInitialDisabled);
+                        await sleep(0);
+                        assert(ctrlInitialDisabled.getAttribute('aria-disabled') === 'true', `initial disabled aria-disabled mismatch: ${ctrlInitialDisabled.getAttribute('aria-disabled')}`);
+                        assert(ctrlInitialDisabled.getAttribute('tabindex') === '-1', `initial disabled tabindex mismatch: ${ctrlInitialDisabled.getAttribute('tabindex')}`);
+                        ctrlInitialDisabled.removeAttribute('disabled');
+                        assert(ctrlInitialDisabled.getAttribute('tabindex') === '0', `initial disabled tabindex not restored: ${ctrlInitialDisabled.getAttribute('tabindex')}`);
+                        writeSmoke('patapata-control: disabled a11y OK');
                     } finally {
                         host.remove();
                     }

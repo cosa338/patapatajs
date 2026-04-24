@@ -1,0 +1,21 @@
+{
+  "name": "patapatajs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "npm run build && npm run check:js && npm run check:html-scripts && npm run typecheck",
+    "check:js": "node --check src/patapata.ts && node --check patapata.js && node --check patapata.min.js",
+    "check:html-scripts": "node scripts/check-html-scripts.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "smoke": "node scripts/smoke-test.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "esbuild": "^0.25.4",
+    "playwright": "^1.52.0",
+    "terser": "^5.39.0",
+    "typescript": "^5.8.3"
+  }
+}

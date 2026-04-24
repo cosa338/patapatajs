@@ -64,6 +64,19 @@ Using CDN:
 - [index.html](index.html) is the documentation + demo page (live demo, copy/paste HTML generator, etc.).
 - Or visit: [https://cosa338.github.io/patapatajs/](https://cosa338.github.io/patapatajs/)
 
+### Development
+
+```sh
+npm install
+npm run check
+npm run build
+npm run smoke
+```
+
+- `npm run check` runs syntax checks for the distributed files, validates inline scripts in [index.html](index.html), and runs TypeScript checking over the JavaScript source.
+- `npm run build` generates [patapata.js](patapata.js) and [patapata.min.js](patapata.min.js) from [src/patapata.ts](src/patapata.ts).
+- `npm run smoke` runs the browser Smoke Test with Playwright.
+
 ### Accessibility (aria-label)
 
 - If `aria-label` is not specified, the elements automatically reflect the currently displayed value to `aria-label`.
@@ -89,9 +102,11 @@ Smoke Test “Run” creates a temporary offscreen host and roughly checks:
 - `patapata-text` auto-updates `aria-label` (and does not overwrite a manual `aria-label`)
 - Toggling core attributes like `atomic/light/stack/align-width` does not throw
 - `patapata-clock` renders and still renders when `diff` is changed
+- `patapata-clock` keeps rendering when `diff` has an invalid value (with a console warning)
 - `patapata-clock` has a non-empty `aria-label` (and does not overwrite a manual `aria-label`)
 - `patapata-timer` renders and still renders when `autostart` is toggled
 - `patapata-timer` has a non-empty `aria-label` (and does not overwrite a manual `aria-label`)
+- `patapata-control` syncs `disabled` to `aria-disabled` and focusability
 
 Finally it removes the host element and shows cache stats if requested.
 
@@ -178,6 +193,19 @@ CDNの利用であればこちら。
 - [index.html](index.html) がドキュメント兼デモページです (動作デモ、貼り付け用HTML生成など) 。
 - またはこちら [https://cosa338.github.io/patapatajs/](https://cosa338.github.io/patapatajs/)
 
+### 開発
+
+```sh
+npm install
+npm run check
+npm run build
+npm run smoke
+```
+
+- `npm run check` は配布ファイルの構文チェック、[index.html](index.html) の inline script チェック、JavaScript ソースへの TypeScript チェックを実行します。
+- `npm run build` は [src/patapata.ts](src/patapata.ts) から [patapata.js](patapata.js) と [patapata.min.js](patapata.min.js) を生成します。
+- `npm run smoke` は Playwright でブラウザ Smoke Test を実行します。
+
 ### Accessibility (aria-label)
 
 - `aria-label` が未指定のとき、要素が現在表示している値を `aria-label` に自動反映します。
@@ -203,9 +231,11 @@ Smoke Test の Run は、画面外 (offscreen) に一時的なホスト要素を
 - `patapata-text` の `aria-label` が自動反映されること（また、ユーザーが `aria-label` を指定した場合は上書きされないこと）
 - `atomic/light/stack/align-width` など主要属性をトグルしても例外が出ないこと
 - `patapata-clock` を生成し、`diff` を変更しても描画できること
+- `patapata-clock` は `diff` が不正値でも描画を継続すること（コンソール警告あり）
 - `patapata-clock` の `aria-label` が空でないこと（また、ユーザーが `aria-label` を指定した場合は上書きされないこと）
 - `patapata-timer` を生成し、`autostart` をトグルしても描画できること
 - `patapata-timer` の `aria-label` が空でないこと（また、ユーザーが `aria-label` を指定した場合は上書きされないこと）
+- `patapata-control` の `disabled` が `aria-disabled` とフォーカス可否に反映されること
 
 最後にホスト要素を削除し、必要に応じてキャッシュ統計を表示します。
 

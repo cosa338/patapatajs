@@ -299,12 +299,12 @@
             background: var(--btn-bg-hover);
         }
 
-        /* Debug-only panels */
+        /* Test-only panel */
         #smokePanel {
             display: none;
         }
 
-        html.ppdebug #smokePanel {
+        html.smoke #smokePanel {
             display: grid;
         }
     </style>
@@ -398,14 +398,10 @@
                 <h2 id="smokeTitle">Smoke Test</h2>
                 <div class="hint" id="smokeDesc" style="margin-top: 0;">
                     主要コンポーネントを生成し、主要属性を一通り切り替える簡易チェックです（例外が出ないこと/Canvasが生成されること）。
-                    キャッシュ統計はデバッグ有効時のみ利用できます（URL に <code>?ppdebug=1</code> を付けるか、Console で
-                    <code>localStorage.patapataDebug='1'</code> を設定）。
                 </div>
                 <div class="actions small">
                     <button type="button" id="runSmoke">Run</button>
                     <button type="button" id="clearSmoke">Clear</button>
-                    <button type="button" id="showCacheStats">Cache stats</button>
-                    <button type="button" id="clearCaches">Clear caches</button>
                 </div>
                 <pre id="smokeOut" class="codeblock"></pre>
             </div>
@@ -883,7 +879,7 @@
                     'setup.cdn': 'HTML sample (CDNを利用)',
                     'preview.title': 'Preview',
                     'smoke.title': 'Smoke Test',
-                    'smoke.descHtml': "主要コンポーネントを生成し、主要属性を一通り切り替える簡易チェックです（例外が出ないこと/Canvasが生成されること）。<br>キャッシュ統計はデバッグ有効時のみ利用できます（URL に <code>?ppdebug=1</code> を付けるか、Console で <code>localStorage.patapataDebug='1'</code> を設定）。",
+                    'smoke.descHtml': "主要コンポーネントを生成し、主要属性を一通り切り替える簡易チェックです（例外が出ないこと/Canvasが生成されること）。",
                     'controls.title': 'Controls',
                     'label.element': 'Element',
                     'label.preset': 'Preset',
@@ -921,8 +917,6 @@
                     'btn.copyFailed': 'Copy failed',
                     'btn.run': 'Run',
                     'btn.clear': 'Clear',
-                    'btn.cacheStats': 'Cache stats',
-                    'btn.clearCaches': 'Clear caches',
                     'timer.start': 'start',
                     'timer.stop': 'stop',
                     'timer.reset': 'reset',
@@ -940,7 +934,7 @@
                     'setup.cdn': 'HTML sample (use CDN)',
                     'preview.title': 'Preview',
                     'smoke.title': 'Smoke Test',
-                    'smoke.descHtml': "A quick check that creates core components and toggles key attributes (no exceptions / canvas gets created).<br>Cache stats are available only when debug is enabled (add <code>?ppdebug=1</code> or set <code>localStorage.patapataDebug='1'</code>).",
+                    'smoke.descHtml': "A quick check that creates core components and toggles key attributes (no exceptions / canvas gets created).",
                     'controls.title': 'Controls',
                     'label.element': 'Element',
                     'label.preset': 'Preset',
@@ -978,8 +972,6 @@
                     'btn.copyFailed': 'Copy failed',
                     'btn.run': 'Run',
                     'btn.clear': 'Clear',
-                    'btn.cacheStats': 'Cache stats',
-                    'btn.clearCaches': 'Clear caches',
                     'timer.start': 'start',
                     'timer.stop': 'stop',
                     'timer.reset': 'reset',
@@ -1040,8 +1032,6 @@
                 setHtml($('smokeDesc'), t('smoke.descHtml'));
                 setText($('runSmoke'), t('btn.run'));
                 setText($('clearSmoke'), t('btn.clear'));
-                setText($('showCacheStats'), t('btn.cacheStats'));
-                setText($('clearCaches'), t('btn.clearCaches'));
 
                 document.querySelectorAll('patapata-control[for="p1"]')?.forEach((el) => {
                     const action = String(el.getAttribute('action') || '');
@@ -1155,20 +1145,16 @@
                 } catch (_) { }
             };
 
-            const isDemoDebugEnabled = () => {
+            const isSmokeTestEnabled = () => {
                 try {
                     const search = (typeof location !== 'undefined' && location && typeof location.search === 'string') ? location.search : '';
-                    if (/(?:^|[?&])ppdebug=1(?:&|$)/.test(search)) return true;
-                    if (/(?:^|[?&])patapataDebug=1(?:&|$)/.test(search)) return true;
-                    if (typeof localStorage !== 'undefined' && localStorage) {
-                        if (localStorage.getItem('patapataDebug') === '1') return true;
-                    }
+                    if (/(?:^|[?&])smoke=1(?:&|$)/.test(search)) return true;
                 } catch (_) { }
                 return false;
             };
 
-            const debugEnabled = isDemoDebugEnabled();
-            document.documentElement.classList.toggle('ppdebug', debugEnabled);
+            const smokeTestEnabled = isSmokeTestEnabled();
+            document.documentElement.classList.toggle('smoke', smokeTestEnabled);
 
             const demoText = $('demoText');
             const demoClock = $('demoClock');
@@ -2533,8 +2519,6 @@
                 const smokeOut = $('smokeOut');
                 const runSmoke = $('runSmoke');
                 const clearSmoke = $('clearSmoke');
-                const showCacheStats = $('showCacheStats');
-                const clearCaches = $('clearCaches');
 
                 const writeSmoke = (line) => {
                     if (!smokeOut) return;
@@ -2543,29 +2527,6 @@
 
                 const clearSmokeLog = () => {
                     if (smokeOut) smokeOut.textContent = '';
-                };
-
-                const getRuntime = () => {
-                    const rt = window.__patapataRuntime;
-                    return (rt && typeof rt === 'object') ? rt : null;
-                };
-
-                const printCacheStats = () => {
-                    const rt = getRuntime();
-                    if (!rt) {
-                        writeSmoke("cache: __patapataRuntime not found (enable: add ?ppdebug=1 or set localStorage.patapataDebug='1' and reload)");
-                        return;
-                    }
-                    if (typeof rt.getCacheStats !== 'function') {
-                        writeSmoke('cache: runtime has no getCacheStats()');
-                        return;
-                    }
-                    try {
-                        const s = rt.getCacheStats();
-                        writeSmoke(`cache: ${JSON.stringify(s)}`);
-                    } catch (e) {
-                        writeSmoke(`cache: ERROR ${e && e.stack ? e.stack : String(e)}`);
-                    }
                 };
 
                 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -2595,8 +2556,6 @@
                 const runSmokeOnce = async () => {
                     clearSmokeLog();
                     writeSmoke(`[${new Date().toLocaleString()}] smoke test start`);
-
-                    printCacheStats();
 
                     const host = document.createElement('div');
                     host.style.cssText = 'position: fixed; left: -99999px; top: 0; width: 10px; height: 10px; overflow: hidden;';
@@ -2707,32 +2666,10 @@
                         host.remove();
                     }
 
-                    printCacheStats();
                     writeSmoke('OK');
                 };
 
                 if (clearSmoke) clearSmoke.addEventListener('click', clearSmokeLog);
-                if (showCacheStats) showCacheStats.addEventListener('click', printCacheStats);
-                if (clearCaches) {
-                    clearCaches.addEventListener('click', () => {
-                        const rt = getRuntime();
-                        if (!rt) {
-                            writeSmoke("cache: __patapataRuntime not found (enable: add ?ppdebug=1 or set localStorage.patapataDebug='1' and reload)");
-                            return;
-                        }
-                        if (typeof rt.clearCaches !== 'function') {
-                            writeSmoke('cache: runtime has no clearCaches()');
-                            return;
-                        }
-                        try {
-                            rt.clearCaches();
-                            writeSmoke('cache: cleared');
-                            printCacheStats();
-                        } catch (e) {
-                            writeSmoke(`cache: ERROR ${e && e.stack ? e.stack : String(e)}`);
-                        }
-                    });
-                }
                 if (runSmoke) {
                     runSmoke.addEventListener('click', async () => {
                         try {
@@ -2747,7 +2684,7 @@
                 }
             };
 
-            if (debugEnabled) initSmokeTest();
+            if (smokeTestEnabled) initSmokeTest();
         })();
     </script>
 

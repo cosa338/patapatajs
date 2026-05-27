@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 
-const url = new URL('../index.html?ppdebug=1', import.meta.url).href;
+const url = new URL('../index.html?smoke=1', import.meta.url).href;
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });

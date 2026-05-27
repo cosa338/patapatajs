@@ -123,45 +123,7 @@ const RUNTIME = {
     evictions: 0,
     clears: 0,
   },
-  // Debug/ops hooks (non-public)
-  clearCaches() {
-    RUNTIME.cardBgCache.clear();
-    RUNTIME.halfBgCache.clear();
-    RUNTIME.cacheStats.clears++;
-  },
-  getCacheStats() {
-    return {
-      ...RUNTIME.cacheStats,
-      cardSize: RUNTIME.cardBgCache.size,
-      halfSize: RUNTIME.halfBgCache.size,
-      limit: RUNTIME.canvasBgCacheLimit,
-    };
-  },
-  setCanvasBgCacheLimit(limit: number) {
-    const n = Number(limit);
-    if (!Number.isFinite(n) || n <= 0) return;
-    RUNTIME.canvasBgCacheLimit = Math.max(1, Math.floor(n));
-  },
 };
-
-const isRuntimeDebugEnabled = () => {
-  try {
-    const search = (typeof location !== 'undefined' && location && typeof location.search === 'string') ? location.search : '';
-    if (/(?:^|[?&])ppdebug=1(?:&|$)/.test(search)) return true;
-    if (/(?:^|[?&])patapataDebug=1(?:&|$)/.test(search)) return true;
-
-    if (typeof localStorage !== 'undefined' && localStorage) {
-      if (localStorage.getItem('patapataDebug') === '1') return true;
-    }
-  } catch (_) {}
-  return false;
-};
-
-try {
-  if (typeof globalThis !== 'undefined' && isRuntimeDebugEnabled()) {
-    globalThis.__patapataRuntime = RUNTIME;
-  }
-} catch (_) {}
 
 function globalRafRequest(el: RuntimeElement) {
   RUNTIME.raf.queue.add(el);

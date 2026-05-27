@@ -366,10 +366,19 @@
             <div class="grid" style="margin-top: 10px;">
                 <div class="card" style="background: transparent; border: 0; padding: 0;">
                     <div class="actions small" style="justify-content: space-between;">
-                        <div class="hint" id="setupCdnHint" style="margin: 0;">HTML sample (CDNを利用)</div>
-                        <button type="button" id="copySetupCdn">Copy</button>
+                        <div class="hint" id="setupPagesHint" style="margin: 0;">HTML sample (GitHub Pages)</div>
+                        <button type="button" id="copySetupPages">Copy</button>
                     </div>
-                    <pre id="setupCdnCode" class="codeblock dark"></pre>
+                    <pre id="setupPagesCode" class="codeblock dark"></pre>
+                </div>
+            </div>
+            <div class="grid" style="margin-top: 10px;">
+                <div class="card" style="background: transparent; border: 0; padding: 0;">
+                    <div class="actions small" style="justify-content: space-between;">
+                        <div class="hint" id="setupJsdelivrHint" style="margin: 0;">HTML sample (jsDelivr)</div>
+                        <button type="button" id="copySetupJsdelivr">Copy</button>
+                    </div>
+                    <pre id="setupJsdelivrCode" class="codeblock dark"></pre>
                 </div>
             </div>
         </div>
@@ -876,7 +885,8 @@
                     'setup.title': 'Setup',
                     'setup.download': 'Download:',
                     'setup.local': 'HTML sample (ファイルをダウンロードして利用)',
-                    'setup.cdn': 'HTML sample (CDNを利用)',
+                    'setup.pages': 'HTML sample (GitHub Pagesを利用)',
+                    'setup.jsdelivr': 'HTML sample (jsDelivrを利用)',
                     'preview.title': 'Preview',
                     'smoke.title': 'Smoke Test',
                     'smoke.descHtml': "主要コンポーネントを生成し、主要属性を一通り切り替える簡易チェックです（例外が出ないこと/Canvasが生成されること）。",
@@ -931,7 +941,8 @@
                     'setup.title': 'Setup',
                     'setup.download': 'Download:',
                     'setup.local': 'HTML sample (use downloaded files)',
-                    'setup.cdn': 'HTML sample (use CDN)',
+                    'setup.pages': 'HTML sample (use GitHub Pages)',
+                    'setup.jsdelivr': 'HTML sample (use jsDelivr)',
                     'preview.title': 'Preview',
                     'smoke.title': 'Smoke Test',
                     'smoke.descHtml': "A quick check that creates core components and toggles key attributes (no exceptions / canvas gets created).",
@@ -1010,7 +1021,8 @@
                 setText($('setupTitle'), t('setup.title'));
                 setText($('setupDownloadLabel'), t('setup.download'));
                 setText($('setupLocalHint'), t('setup.local'));
-                setText($('setupCdnHint'), t('setup.cdn'));
+                setText($('setupPagesHint'), t('setup.pages'));
+                setText($('setupJsdelivrHint'), t('setup.jsdelivr'));
 
                 setText($('previewTitle'), t('preview.title'));
                 setText($('controlsTitle'), t('controls.title'));
@@ -1020,7 +1032,7 @@
                 setText($('genCssHtmlTitle'), t('genCssHtml.title'));
                 setText($('genCssHtmlHint'), t('genCssHtml.hint'));
 
-                const copyBtnIds = ['copySetupLocal', 'copySetupCdn', 'copyHtml', 'copyCssHtml'];
+                const copyBtnIds = ['copySetupLocal', 'copySetupPages', 'copySetupJsdelivr', 'copyHtml', 'copyCssHtml'];
                 for (const id of copyBtnIds) {
                     const b = $(id);
                     if (!b) continue;
@@ -1420,9 +1432,14 @@
                 '<script src="./patapata.min.js" defer></' + 'script>',
             ].join('\n');
 
-            const SETUP_CDN_HTML = [
-                '<!-- Setup (CDN) -->',
-                '<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs/patapata.min.js" defer></' + 'script>',
+            const SETUP_PAGES_HTML = [
+                '<!-- Setup (GitHub Pages) -->',
+                '<script src="https://cosa338.github.io/patapatajs/patapata.min.js" defer></' + 'script>',
+            ].join('\n');
+
+            const SETUP_JSDELIVR_HTML = [
+                '<!-- Setup (jsDelivr, version pinned) -->',
+                '<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs@v0.1.1/patapata.min.js" defer></' + 'script>',
             ].join('\n');
 
             // Live update
@@ -2494,9 +2511,11 @@
 
             // Setup code blocks
             const setupLocalCode = $('setupLocalCode');
-            const setupCdnCode = $('setupCdnCode');
+            const setupPagesCode = $('setupPagesCode');
+            const setupJsdelivrCode = $('setupJsdelivrCode');
             if (setupLocalCode) setupLocalCode.textContent = SETUP_LOCAL_HTML;
-            if (setupCdnCode) setupCdnCode.textContent = SETUP_CDN_HTML;
+            if (setupPagesCode) setupPagesCode.textContent = SETUP_PAGES_HTML;
+            if (setupJsdelivrCode) setupJsdelivrCode.textContent = SETUP_JSDELIVR_HTML;
 
             const copySetupLocal = $('copySetupLocal');
             if (copySetupLocal) {
@@ -2506,11 +2525,19 @@
                     flashButton(btn, ok);
                 });
             }
-            const copySetupCdn = $('copySetupCdn');
-            if (copySetupCdn) {
-                copySetupCdn.addEventListener('click', async (e) => {
+            const copySetupPages = $('copySetupPages');
+            if (copySetupPages) {
+                copySetupPages.addEventListener('click', async (e) => {
                     const btn = e.currentTarget;
-                    const ok = await copyText(SETUP_CDN_HTML);
+                    const ok = await copyText(SETUP_PAGES_HTML);
+                    flashButton(btn, ok);
+                });
+            }
+            const copySetupJsdelivr = $('copySetupJsdelivr');
+            if (copySetupJsdelivr) {
+                copySetupJsdelivr.addEventListener('click', async (e) => {
+                    const btn = e.currentTarget;
+                    const ok = await copyText(SETUP_JSDELIVR_HTML);
                     flashButton(btn, ok);
                 });
             }

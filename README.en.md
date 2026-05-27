@@ -49,10 +49,18 @@ Load [patapata.js](patapata.js) (or [patapata.min.js](patapata.min.js)) in HTML 
 <patapata-clock format="HH:mm:ss"></patapata-clock>
 ```
 
-Using CDN:
+Using GitHub Pages:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs/patapata.min.js" defer></script>
+<script src="https://cosa338.github.io/patapatajs/patapata.min.js" defer></script>
+
+<patapata-clock format="HH:mm:ss"></patapata-clock>
+```
+
+Using jsDelivr:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs@v0.1.1/patapata.min.js" defer></script>
 
 <patapata-clock format="HH:mm:ss"></patapata-clock>
 ```

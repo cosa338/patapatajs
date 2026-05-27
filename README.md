@@ -50,10 +50,18 @@ HTML で [patapata.js](patapata.js) (または [patapata.min.js](patapata.min.js
 <patapata-clock format="HH:mm:ss"></patapata-clock>
 ```
 
-CDN の利用であればこちら。
+GitHub Pages から読み込む場合はこちら。
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs/patapata.min.js" defer></script>
+<script src="https://cosa338.github.io/patapatajs/patapata.min.js" defer></script>
+
+<patapata-clock format="HH:mm:ss"></patapata-clock>
+```
+
+jsDelivr を利用する場合はこちら。
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs@v0.1.1/patapata.min.js" defer></script>
 
 <patapata-clock format="HH:mm:ss"></patapata-clock>
 ```

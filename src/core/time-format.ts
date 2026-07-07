@@ -1,5 +1,12 @@
 import { splitGraphemes } from './utils.ts';
 
+type FormatPart = { type: 'token' | 'lit'; value: string };
+
+interface PanelTokens {
+  tokens: string[];
+  isMsPanel: boolean[];
+}
+
 const CLOCK_TOKENS = [
   'ampm_jp',
   'ddd_jp',
@@ -36,19 +43,19 @@ const TIMER_TOKENS = [
   'S',
 ];
 
-function pad2(n) {
+function pad2(n: number): string {
   const s = String(Math.trunc(n) % 100);
   return s.length >= 2 ? s : `0${s}`;
 }
 
-function pad3(n) {
+function pad3(n: number): string {
   const s = String(Math.trunc(n) % 1000);
   if (s.length >= 3) return s;
   if (s.length === 2) return `0${s}`;
   return `00${s}`;
 }
 
-export function parseDiffTargetMs(raw) {
+export function parseDiffTargetMs(raw: unknown): number | null {
   const s = String(raw ?? '').trim();
   if (!s) return null;
 
@@ -74,18 +81,18 @@ export function parseDiffTargetMs(raw) {
   return Number.isFinite(ms) ? ms : null;
 }
 
-export function clampNonNegativeMs(ms) {
+export function clampNonNegativeMs(ms: number): number {
   const n = Number(ms);
   if (!Number.isFinite(n)) return 0;
   return n <= 0 ? 0 : n;
 }
 
-function tokenizeClockFormat(fmt) {
+function tokenizeFormat(fmt: string, tokenNames: string[]): FormatPart[] {
   const s = String(fmt ?? '');
-  const out = [];
+  const out: FormatPart[] = [];
   for (let i = 0; i < s.length;) {
     let matched = null;
-    for (const t of CLOCK_TOKENS) {
+    for (const t of tokenNames) {
       if (s.startsWith(t, i)) {
         matched = t;
         break;
@@ -103,7 +110,11 @@ function tokenizeClockFormat(fmt) {
   return out;
 }
 
-function clockTokenValue(token, date) {
+function tokenizeClockFormat(fmt: string): FormatPart[] {
+  return tokenizeFormat(fmt, CLOCK_TOKENS);
+}
+
+function clockTokenValue(token: string, date: Date): string {
   const d = date;
   const y = d.getFullYear();
   const m = d.getMonth() + 1;
@@ -136,7 +147,7 @@ function clockTokenValue(token, date) {
   }
 }
 
-function clockDiffTokenValue(token, diffMs, minDigits = 0) {
+function clockDiffTokenValue(token: string, diffMs: number, minDigits = 0): string {
   const n = Number(diffMs);
   const neg = Number.isFinite(n) && n < 0;
   const msAbs = Number.isFinite(n) ? Math.abs(n) : 0;
@@ -145,7 +156,7 @@ function clockDiffTokenValue(token, diffMs, minDigits = 0) {
   const md = (typeof minDigits === 'number' && Number.isFinite(minDigits) && minDigits > 0)
     ? Math.floor(minDigits)
     : 0;
-  const padSigned = (v) => {
+  const padSigned = (v: number) => {
     const s = String(Math.trunc(v));
     if (md <= 0) return `${sign}${s}`;
     return `${sign}${s.padStart(md, '0')}`;
@@ -187,10 +198,10 @@ function clockDiffTokenValue(token, diffMs, minDigits = 0) {
   }
 }
 
-export function buildClockPanels(format, date, diffMs, minDigits = 0) {
+export function buildClockPanels(format: string, date: Date, diffMs: number | null, minDigits = 0): PanelTokens {
   const parts = tokenizeClockFormat(format);
-  const tokens = [];
-  const isMsPanel = [];
+  const tokens: string[] = [];
+  const isMsPanel: boolean[] = [];
 
   const isDiff = diffMs != null;
 
@@ -218,16 +229,16 @@ export function buildClockPanels(format, date, diffMs, minDigits = 0) {
   return { tokens, isMsPanel };
 }
 
-export function clockProbeTextFromFormat(format, minDigits = 0) {
+export function clockProbeTextFromFormat(format: string, minDigits = 0): string {
   // A stable max-ish string to drive geometry/cache without recomputing every tick.
   // (digits -> '8', day tokens -> widest-ish, jp tokens -> real strings)
   const md = (typeof minDigits === 'number' && Number.isFinite(minDigits) && minDigits > 0)
     ? Math.floor(minDigits)
     : 0;
-  const flex = (fallback) => '8'.repeat(Math.max(fallback, md));
+  const flex = (fallback: number) => '8'.repeat(Math.max(fallback, md));
 
   const parts = tokenizeClockFormat(format);
-  const out = [];
+  const out: string[] = [];
   for (const p of parts) {
     if (p.type === 'lit') {
       out.push(String(p.value ?? ''));
@@ -259,30 +270,11 @@ export function clockProbeTextFromFormat(format, minDigits = 0) {
   return out.join('');
 }
 
-function tokenizeTimerFormat(fmt) {
-  const s = String(fmt ?? '');
-  const out = [];
-  for (let i = 0; i < s.length;) {
-    let matched = null;
-    for (const t of TIMER_TOKENS) {
-      if (s.startsWith(t, i)) {
-        matched = t;
-        break;
-      }
-    }
-    if (matched) {
-      out.push({ type: 'token', value: matched });
-      i += matched.length;
-    } else {
-      const ch = splitGraphemes(s.slice(i))[0] ?? s[i];
-      out.push({ type: 'lit', value: ch });
-      i += ch.length;
-    }
-  }
-  return out;
+function tokenizeTimerFormat(fmt: string): FormatPart[] {
+  return tokenizeFormat(fmt, TIMER_TOKENS);
 }
 
-function timerTokenValue(token, msTotal, minDigits = 0) {
+function timerTokenValue(token: string, msTotal: number, minDigits = 0): string {
   const msAbs = clampNonNegativeMs(msTotal);
   const hoursTotal = Math.floor(msAbs / 3600000);
   const minutesTotal = Math.floor(msAbs / 60000);
@@ -291,7 +283,7 @@ function timerTokenValue(token, msTotal, minDigits = 0) {
   const md = (typeof minDigits === 'number' && Number.isFinite(minDigits) && minDigits > 0)
     ? Math.floor(minDigits)
     : 0;
-  const padFlex = (v) => {
+  const padFlex = (v: number) => {
     const s = String(Math.trunc(v));
     if (md <= 0) return s;
     return s.padStart(md, '0');
@@ -314,10 +306,10 @@ function timerTokenValue(token, msTotal, minDigits = 0) {
   }
 }
 
-export function buildTimerPanels(format, msTotal, minDigits = 0) {
+export function buildTimerPanels(format: string, msTotal: number, minDigits = 0): PanelTokens {
   const parts = tokenizeTimerFormat(format);
-  const tokens = [];
-  const isMsPanel = [];
+  const tokens: string[] = [];
+  const isMsPanel: boolean[] = [];
 
   for (const p of parts) {
     if (p.type === 'lit') {
@@ -341,15 +333,15 @@ export function buildTimerPanels(format, msTotal, minDigits = 0) {
   return { tokens, isMsPanel };
 }
 
-export function timerProbeTextFromFormat(format, minDigits = 0) {
+export function timerProbeTextFromFormat(format: string, minDigits = 0): string {
   // Drive stable-ish geometry/cache.
   const md = (typeof minDigits === 'number' && Number.isFinite(minDigits) && minDigits > 0)
     ? Math.floor(minDigits)
     : 0;
-  const flex = (fallback) => '8'.repeat(Math.max(fallback, md));
+  const flex = (fallback: number) => '8'.repeat(Math.max(fallback, md));
 
   const parts = tokenizeTimerFormat(format);
-  const out = [];
+  const out: string[] = [];
   for (const p of parts) {
     if (p.type === 'lit') {
       out.push(String(p.value ?? ''));

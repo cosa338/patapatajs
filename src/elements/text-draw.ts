@@ -1,4 +1,3 @@
-// @ts-check
 
 import { JS_DEFAULTS } from '../render/runtime.ts';
 import {

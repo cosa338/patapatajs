@@ -1,4 +1,3 @@
-// @ts-check
 
 import {
   attrNumber,
@@ -12,6 +11,7 @@ import { buildClockPanels, clockProbeTextFromFormat, parseDiffTargetMs } from '.
 import {
   JS_DEFAULTS,
   TICK_INTERVAL_MS,
+  HIDDEN_TICK_INTERVAL_MS,
   MS_PANEL_DURATION_MS,
   VISUAL_ONLY_ATTRS,
   CLOCK_OBSERVED_ATTRS,
@@ -23,6 +23,7 @@ import type { ClockConfig } from './types.ts';
 
 class PatapataClockElement extends PatapataTextElement {
   _lastInvalidDiffWarning: string | null = null;
+  _stepFn: (() => void) | null = null;
 
   static override get observedAttributes() {
     // Keep parity with patapata-text where it matters; add 'format'.
@@ -34,7 +35,7 @@ class PatapataClockElement extends PatapataTextElement {
     if (this.isConnected) this.start();
   }
 
-  override attributeChangedCallback(name) {
+  override attributeChangedCallback(name: string) {
     if (!this.isConnected) return;
 
     if (name === 'click') return;
@@ -103,6 +104,18 @@ class PatapataClockElement extends PatapataTextElement {
     this._sequence = sequence;
     this._layoutDirty = true;
 
+    // The isMsPanel flags are derived from the format tokens, so the initial
+    // build tells us whether any panel updates at sub-second cadence.
+    const hasMsPanels = panels.isMsPanel.some(Boolean);
+
+    const nextTickDelayMs = () => {
+      if (this._isPaintSuppressed()) return HIDDEN_TICK_INTERVAL_MS;
+      if (hasMsPanels) return TICK_INTERVAL_MS;
+      // Without ms tokens, displayed values only change on second boundaries.
+      const toNextSecond = 1000 - (Date.now() % 1000);
+      return Math.min(1000, Math.max(TICK_INTERVAL_MS, toNextSecond + 8));
+    };
+
     const stepClockOnce = () => {
       if (!this._sequence) return;
       const nowTs = performance.now();
@@ -125,14 +138,24 @@ class PatapataClockElement extends PatapataTextElement {
       // Keep probe text stable for layout caching.
       part.currentText = probe;
 
-      // Tick loop runs at ~60fps; avoid recomputing CSS-derived config each time.
-      this._render(nowTs, true);
+      // Painting is driven by the shared rAF loop; the flips started above
+      // re-arm it. Ticks only feed values, so nothing is drawn twice.
       this._ensureRaf();
-      this._timer = setTimeout(stepClockOnce, TICK_INTERVAL_MS);
+      this._timer = setTimeout(stepClockOnce, nextTickDelayMs());
     };
 
+    this._stepFn = stepClockOnce;
     this._render(now);
-    this._timer = setTimeout(stepClockOnce, TICK_INTERVAL_MS);
+    this._timer = setTimeout(stepClockOnce, nextTickDelayMs());
+  }
+
+  // While hidden/off-screen the tick loop slows to HIDDEN_TICK_INTERVAL_MS;
+  // when painting resumes, tick immediately so the display snaps up to date.
+  override _pokeTick() {
+    if (this._timer == null || this._stepFn == null) return;
+    clearTimeout(this._timer);
+    this._timer = null;
+    this._stepFn();
   }
 }
 

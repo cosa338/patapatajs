@@ -1,4 +1,3 @@
-// @ts-check
 
 import { Flipper } from '../render/flipper.ts';
 import type { PanelApplyOptions, SequencePart, SequenceState } from './types.ts';
@@ -16,7 +15,8 @@ function applyPanelTokensToPart(opts: PanelApplyOptions) {
     onLayoutDirty = null,
   } = opts;
 
-  const tokensToApply = atomic ? [tokens.join('')] : tokens;
+  const rawTokensToApply = atomic ? [tokens.join('')] : tokens;
+  const tokensToApply = rawTokensToApply.length > 0 ? rawTokensToApply : [''];
   const flagsToApply = atomic ? [isMsPanel.some(Boolean)] : isMsPanel;
 
   if (!atomic && tokensToApply.length > (part.maxLen || 0)) {

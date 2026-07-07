@@ -1,12 +1,15 @@
 import { build } from 'esbuild';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const entryPoint = fileURLToPath(new URL('../src/patapata.ts', import.meta.url));
 const distPath = fileURLToPath(new URL('../patapata.js', import.meta.url));
 const minPath = fileURLToPath(new URL('../patapata.min.js', import.meta.url));
 
+const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+
 const banner = `/*!
- * patapata.jp v0.1.1
+ * patapata.js v${pkg.version}
  * SPDX-License-Identifier: MIT
  * Copyright (c) 2026 https://github.com/cosa338
  */`;

@@ -1,9 +1,13 @@
-// @ts-check
 
 import { attrBool, cssVar, pick } from '../core/utils.ts';
 import { JS_DEFAULTS } from './runtime.ts';
+import type { VisualConfig } from '../elements/types.ts';
 
-function readCssColor(el, name) {
+// CSS length values are resolved through a real CSS property; width/height
+// reject negative values, so signed lengths go through a margin property.
+type MeasurableCssProperty = 'width' | 'marginLeft' | 'fontSize';
+
+function readCssColor(el: Element, name: string): string | null {
   const v = cssVar(el, name);
   return v ? String(v) : null;
 }
@@ -86,7 +90,7 @@ class PatapataCanvasBaseElement extends HTMLElement {
     this._shadow.appendChild(this._measure);
   }
 
-  _resolveCssPx(varName, fallbackPx, cssProperty) {
+  _resolveCssPx(varName: string, fallbackPx: number, cssProperty?: MeasurableCssProperty): number {
     // getComputedStyle(host).getPropertyValue('--x') returns the specified value (clamp/calc not resolved).
     // Apply it to a real CSS property and read back the computed px.
     const fb = Number.isFinite(fallbackPx) ? fallbackPx : 0;
@@ -97,27 +101,27 @@ class PatapataCanvasBaseElement extends HTMLElement {
     return Number.isFinite(n) ? n : fb;
   }
 
-  _resolveLengthPx(varName, fallbackPx) {
+  _resolveLengthPx(varName: string, fallbackPx: number): number {
     return this._resolveCssPx(varName, fallbackPx, 'width');
   }
 
-  _resolveSignedLengthPx(varName, fallbackPx) {
+  _resolveSignedLengthPx(varName: string, fallbackPx: number): number {
     // width/height can't be negative; use a margin property for signed lengths.
     return this._resolveCssPx(varName, fallbackPx, 'marginLeft');
   }
 
-  _resolveFontSizePx(varName, fallbackPx) {
+  _resolveFontSizePx(varName: string, fallbackPx: number): number {
     return this._resolveCssPx(varName, fallbackPx, 'fontSize');
   }
 
-  _resolveNumber(varName, fallback) {
+  _resolveNumber(varName: string, fallback: number): number {
     const raw = cssVar(this, varName);
     if (!raw) return fallback;
     const n = Number(raw);
     return Number.isFinite(n) ? n : fallback;
   }
 
-  _readVisualConfigBase(dividerModeFallback) {
+  _readVisualConfigBase(dividerModeFallback: string): VisualConfig {
     // Fallbacks here are safety nets, not the primary defaults.
     // Primary defaults live in :host styles and are meant to be overridden by user CSS.
     const cardWidth = this._resolveLengthPx('--patapata-card-width', 80);

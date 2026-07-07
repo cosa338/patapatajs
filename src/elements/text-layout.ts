@@ -1,4 +1,3 @@
-// @ts-check
 
 import { normalizePartsFromValue, parseJsonLoose, splitGraphemes } from '../core/utils.ts';
 import { calcAtomicCardWidthPx } from '../render/draw.ts';
@@ -139,7 +138,7 @@ function resolveTextLayout(opts: {
 
   if (isSequencing && host._sequence) {
     // Sequencing mode: geometry is driven by stable flipper counts.
-    geomParts = host._sequence.parts.map((sp, idx) => {
+    geomParts = host._sequence.parts.map((sp, idx): GeomPart => {
       const partItems = partsItems[idx] || [];
       const atomicText = String(sp.currentText ?? (sp.items && sp.items[0] ? sp.items[0] : ''));
 

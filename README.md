@@ -1,5 +1,7 @@
 # patapata.js
 
+![patapata.js のフリップアニメーション](docs/hero.gif)
+
 パタパタするあれです。  
 Demo: [https://cosa338.github.io/patapatajs/](https://cosa338.github.io/patapatajs/)
 
@@ -22,7 +24,7 @@ Demo: [https://cosa338.github.io/patapatajs/](https://cosa338.github.io/patapata
   - 一部のパネルを小さく表示
 
 - テキスト表示
-  - 固定表示
+  - 固定表示(`value` を後から変更するとフリップして切り替わります)
   - ランダム表示の後に決まったテキストを表示（`rand`）
   - テキストを順番に表示（JSON + `interval`、必要なら `repeat`）
   - 候補をシャッフルして表示（`shuffle-time`）
@@ -61,7 +63,7 @@ GitHub Pages から読み込む場合はこちら。
 jsDelivr を利用する場合はこちら。
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs@v0.1.1/patapata.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs@v0.1.2/patapata.min.js" defer></script>
 
 <patapata-clock format="HH:mm:ss"></patapata-clock>
 ```
@@ -71,16 +73,24 @@ jsDelivr を利用する場合はこちら。
 - [index.html](index.html) がドキュメント兼デモページです (動作デモ、貼り付け用HTML生成など) 。
 - またはこちら [https://cosa338.github.io/patapatajs/](https://cosa338.github.io/patapatajs/)
 
+### 挙動の補足
+
+- `patapata-text` の `value` 属性を後から変更すると、現在の表示からフリップして新しいテキストに切り替わります(`rand` 指定時や JSON 値の場合は表示の再スタートになります)。
+- `patapata-clock` の `diff` で指定時刻を過ぎた場合、`-` 符号が付くのは `DDD` / `HHH` / `mmm` / `sss` の合計系トークンのみです。`HH:mm:ss` のようなフォーマットでは超過が判別できないため、超過後も表示する場合は合計系トークンを含めてください。
+- `patapata-control` の `for` は `document.getElementById()` で対象を解決します。Shadow DOM 内の要素は対象にできません。
+
 ### 開発
 
 ```sh
 npm install
 npm run check
+npm run test
 npm run build
 npm run smoke
 ```
 
-- `npm run check` は配布ファイルの構文チェック、[index.html](index.html) の inline script チェック、JavaScript ソースへの TypeScript チェックを実行します。
+- `npm run check` は配布ファイルの構文チェック、[index.html](index.html) / [display.html](display.html) の inline script チェック、TypeScript の型チェック(`noImplicitAny`)を実行します。
+- `npm run test` は Node.js 組み込みテストランナーで [tests/](tests/) の単体テストを実行します(TypeScript を直接実行するため Node.js 23.6 以降、推奨は 24)。
 - `npm run build` は [src/patapata.ts](src/patapata.ts) から [patapata.js](patapata.js) と [patapata.min.js](patapata.min.js) を生成します。
 - `npm run smoke` は Playwright でブラウザ Smoke Test を実行します。
 

@@ -1,5 +1,7 @@
 # patapata.js
 
+![patapata.js flip animation](docs/hero.gif)
+
 Patapata-style flip display for the web.  
 Demo: [https://cosa338.github.io/patapatajs/](https://cosa338.github.io/patapatajs/)
 
@@ -21,7 +23,7 @@ A Web Components (Custom Elements) library that displays text and dates/times wi
   - Render some panels smaller than others
 
 - Text display
-  - Fixed text
+  - Fixed text (changing `value` later flips to the new text)
   - Random (`rand`): shows random characters for a while, then settles to the target text
   - Sequence: step through items at `interval` (optionally `repeat`)
   - Shuffle (time-limited): randomly switches among candidates for a set duration (`shuffle-time`)
@@ -60,7 +62,7 @@ Using GitHub Pages:
 Using jsDelivr:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs@v0.1.1/patapata.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/cosa338/patapatajs@v0.1.2/patapata.min.js" defer></script>
 
 <patapata-clock format="HH:mm:ss"></patapata-clock>
 ```
@@ -70,16 +72,24 @@ Using jsDelivr:
 - [index.html](index.html) is the documentation + demo page (live demo, copy/paste HTML generator, etc.).
 - Or visit: [https://cosa338.github.io/patapatajs/](https://cosa338.github.io/patapatajs/)
 
+### Behavior Notes
+
+- Changing the `value` attribute of `patapata-text` later flips from the current display to the new text (with `rand` or JSON values, the display restarts as before).
+- When a `patapata-clock` `diff` target is in the past, the `-` sign only appears on the total-style tokens `DDD` / `HHH` / `mmm` / `sss`. Formats like `HH:mm:ss` cannot indicate the overrun, so include a total-style token if you want to keep displaying past the target.
+- `patapata-control` resolves its `for` target via `document.getElementById()`, so elements inside a Shadow DOM cannot be targeted.
+
 ### Development
 
 ```sh
 npm install
 npm run check
+npm run test
 npm run build
 npm run smoke
 ```
 
-- `npm run check` runs syntax checks for the distributed files, validates inline scripts in [index.html](index.html), and runs TypeScript checking over the JavaScript source.
+- `npm run check` runs syntax checks for the distributed files, validates inline scripts in [index.html](index.html) and [display.html](display.html), and runs the TypeScript check (`noImplicitAny`).
+- `npm run test` runs the unit tests in [tests/](tests/) with the built-in Node.js test runner (runs TypeScript directly, so Node.js 23.6+ is required; 24 recommended).
 - `npm run build` generates [patapata.js](patapata.js) and [patapata.min.js](patapata.min.js) from [src/patapata.ts](src/patapata.ts).
 - `npm run smoke` runs the browser Smoke Test with Playwright.
 

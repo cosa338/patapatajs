@@ -1,4 +1,3 @@
-// @ts-check
 
 import { attrString } from '../core/utils.ts';
 
@@ -53,7 +52,7 @@ class PatapataControlElement extends HTMLElement {
     this._onKeyDown = null;
   }
 
-  attributeChangedCallback(name, oldValue, newValue) {
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
     if (oldValue === newValue) return;
     if (name === 'disabled') this._syncDisabledState();
   }

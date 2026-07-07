@@ -1,4 +1,3 @@
-// @ts-check
 
 import { resolveTextLayout } from './text-layout.ts';
 import { drawTextFrame } from './text-draw.ts';
@@ -64,7 +63,6 @@ function renderText(host: TextRenderHost, now: number, fromRaf = false) {
     halfTail,
     ctx,
   });
-  const isSequencing = !!host._sequence;
   const dpr = window.devicePixelRatio || 1;
 
   const pxW = Math.max(1, Math.floor(totalW * dpr));

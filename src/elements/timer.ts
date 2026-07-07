@@ -1,4 +1,3 @@
-// @ts-check
 
 import {
   attrNumber,
@@ -12,6 +11,7 @@ import { buildTimerPanels, clampNonNegativeMs, timerProbeTextFromFormat } from '
 import {
   JS_DEFAULTS,
   TICK_INTERVAL_MS,
+  HIDDEN_TICK_INTERVAL_MS,
   MS_PANEL_DURATION_MS,
   VISUAL_ONLY_ATTRS,
   TIMER_OBSERVED_ATTRS,
@@ -25,6 +25,7 @@ class PatapataTimerElement extends PatapataTextElement {
   _timerRunning: boolean;
   _timerBaseElapsedMs: number;
   _timerStartedAt: number;
+  _hasMsPanels: boolean;
 
   static override get observedAttributes() {
     return TIMER_OBSERVED_ATTRS;
@@ -35,6 +36,7 @@ class PatapataTimerElement extends PatapataTextElement {
     this._timerRunning = false;
     this._timerBaseElapsedMs = 0;
     this._timerStartedAt = 0;
+    this._hasMsPanels = false;
   }
 
   _refreshSequence() {
@@ -69,7 +71,7 @@ class PatapataTimerElement extends PatapataTextElement {
     this._sequence = null;
   }
 
-  override attributeChangedCallback(name) {
+  override attributeChangedCallback(name: string) {
     if (!this.isConnected) return;
 
     if (name === 'click') return;
@@ -129,14 +131,14 @@ class PatapataTimerElement extends PatapataTextElement {
     return { cfg, countdownStartMs };
   }
 
-  _nowElapsedMs(nowTs) {
+  _nowElapsedMs(nowTs: number) {
     const base = clampNonNegativeMs(this._timerBaseElapsedMs);
     if (!this._timerRunning) return base;
     const dt = (typeof nowTs === 'number' && Number.isFinite(nowTs)) ? (nowTs - this._timerStartedAt) : 0;
     return clampNonNegativeMs(base + dt);
   }
 
-  _displayMs(nowTs) {
+  _displayMs(nowTs: number) {
     const { countdownStartMs } = this._timerConfig();
     const elapsed = this._nowElapsedMs(nowTs);
     if (countdownStartMs == null) return elapsed;
@@ -212,9 +214,25 @@ class PatapataTimerElement extends PatapataTextElement {
     const { sequence } = buildSinglePartSequence('timer', probe, panels.tokens, atomic);
     this._sequence = sequence;
     this._layoutDirty = true;
+    // isMsPanel flags are derived from the format tokens, so the initial
+    // build tells us whether any panel updates at sub-second cadence.
+    this._hasMsPanels = panels.isMsPanel.some(Boolean);
   }
 
-  _applyDisplay(nowTs, allowRebuild = false) {
+  _nextTickDelayMs(nowTs: number) {
+    if (this._isPaintSuppressed()) return HIDDEN_TICK_INTERVAL_MS;
+    if (this._hasMsPanels) return TICK_INTERVAL_MS;
+    // Without ms tokens, the display only changes when the elapsed time
+    // crosses a second boundary; sleep until just past the next one.
+    const { countdownStartMs } = this._timerConfig();
+    const msPart = this._displayMs(nowTs) % 1000;
+    const toBoundary = (countdownStartMs == null)
+      ? (1000 - msPart)
+      : (msPart > 0 ? msPart : 1000);
+    return Math.min(1000, Math.max(TICK_INTERVAL_MS, toBoundary + 8));
+  }
+
+  _applyDisplay(nowTs: number, allowRebuild = false) {
     if (!this._sequence || !this._sequence.parts || !this._sequence.parts[0]) return;
     const { cfg } = this._timerConfig();
     const atomic = !!(cfg.visual && cfg.visual.atomic);
@@ -251,13 +269,21 @@ class PatapataTimerElement extends PatapataTextElement {
     }
 
     this._applyDisplay(nowTs, true);
-    // Tick loop runs at ~60fps; avoid recomputing CSS-derived config each time.
-    this._render(nowTs, true);
+    // Painting is driven by the shared rAF loop; the flips started above
+    // re-arm it. Ticks only feed values, so nothing is drawn twice.
     this._ensureRaf();
 
     if (this._timerRunning) {
-      this._timer = setTimeout(() => this._tickOnce(), TICK_INTERVAL_MS);
+      this._timer = setTimeout(() => this._tickOnce(), this._nextTickDelayMs(nowTs));
     }
+  }
+
+  // While hidden/off-screen the tick loop slows to HIDDEN_TICK_INTERVAL_MS;
+  // when painting resumes, tick immediately so the display snaps up to date.
+  override _pokeTick() {
+    if (!this._timerRunning || this._timer == null) return;
+    this._clearTimerHandle();
+    this._tickOnce();
   }
 }
 

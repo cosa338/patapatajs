@@ -1,4 +1,3 @@
-// @ts-check
 
 import { attrBool, attrNumber, splitGraphemes } from '../core/utils.ts';
 import { JS_DEFAULTS } from '../render/runtime.ts';

@@ -1,4 +1,3 @@
-// @ts-check
 
 import { normalizePartsFromValue, splitGraphemes } from '../core/utils.ts';
 import { Flipper } from '../render/flipper.ts';

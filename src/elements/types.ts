@@ -1,9 +1,7 @@
-// @ts-check
-
 import type { Flipper } from '../render/flipper.ts';
 
 type LayoutMode = 'row' | 'stack';
-type SequenceMode = 'rand' | 'sequence' | 'shuffle' | 'clock' | 'timer';
+type SequenceMode = 'rand' | 'sequence' | 'shuffle' | 'clock' | 'timer' | 'static';
 
 interface BaseConfig {
   visual: VisualConfig;
@@ -25,18 +23,33 @@ interface VisualConfig {
   font: {
     family: string;
     sizePx: number;
-    weight: string;
+    weight: number;
   };
   text: {
-    align: 'left' | 'center' | 'right';
-    valign: 'top' | 'middle' | 'bottom';
+    align: string;
+    valign: string;
     offsetXPx: number;
     offsetYPx: number;
   };
   colors: {
+    panelTop: string;
+    panelBottom: string;
+    divider: string;
     text: string;
+    edge: string;
   };
-  [key: string]: unknown;
+  divider: {
+    sizePx: number;
+    mode: string;
+  };
+  edge: {
+    sizePx: number;
+    insetShadeStrength: number;
+  };
+  flip: {
+    overhang: number;
+    shadow: number;
+  };
 }
 
 interface ClockConfig extends BaseConfig {
@@ -107,6 +120,7 @@ export type {
   LayoutCache,
   LayoutMode,
   PanelApplyOptions,
+  SequenceMode,
   SequencePart,
   SequenceState,
   TimerConfig,

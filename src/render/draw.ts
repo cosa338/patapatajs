@@ -1,10 +1,11 @@
-// @ts-check
-
 import { normalizeEasingName } from '../core/utils.ts';
 import { RUNTIME } from './runtime.ts';
+import type { BaseConfig, VisualConfig } from '../elements/types.ts';
 
-function cfgBgKey(cfg) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+type CardHalf = 'top' | 'bottom';
+
+function cfgBgKey(cfg: BaseConfig): string {
+  const v = cfg.visual;
   // Only include values that affect the background pixels.
   return [
     v.colors.panelTop,
@@ -16,18 +17,17 @@ function cfgBgKey(cfg) {
   ].join('|');
 }
 
-function touchLru(map, key, value) {
+function touchLru<T>(map: Map<string, T>, key: string, value: T) {
   if (map.has(key)) map.delete(key);
   map.set(key, value);
   if (map.size <= RUNTIME.canvasBgCacheLimit) return;
   const oldestKey = map.keys().next().value;
   if (oldestKey != null) {
     map.delete(oldestKey);
-    RUNTIME.cacheStats.evictions++;
   }
 }
 
-function makeOffscreenCanvas(wPx, hPx) {
+function makeOffscreenCanvas(wPx: number, hPx: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
   // Use ceil to avoid clipping a fractional DPR-scaled size.
   // Clipped edges can become transparent seams that reveal underlying layers
@@ -37,17 +37,14 @@ function makeOffscreenCanvas(wPx, hPx) {
   return c;
 }
 
-function getCardBackgroundCanvas(w, h, dpr, cfg) {
+function getCardBackgroundCanvas(w: number, h: number, dpr: number, cfg: BaseConfig): HTMLCanvasElement {
   const idpr = (typeof dpr === 'number' && Number.isFinite(dpr) && dpr > 0) ? dpr : 1;
   const key = `${idpr}|${Math.round(w * 1000) / 1000}|${Math.round(h * 1000) / 1000}|${cfgBgKey(cfg)}`;
   const hit = RUNTIME.cardBgCache.get(key);
   if (hit) {
-    RUNTIME.cacheStats.cardHits++;
     touchLru(RUNTIME.cardBgCache, key, hit);
     return hit;
   }
-
-  RUNTIME.cacheStats.cardMisses++;
 
   const canvas = makeOffscreenCanvas(w * idpr, h * idpr);
   const ctx = canvas.getContext('2d');
@@ -57,17 +54,14 @@ function getCardBackgroundCanvas(w, h, dpr, cfg) {
   return canvas;
 }
 
-function getHalfBackgroundCanvas(w, h, dpr, cfg, half) {
+function getHalfBackgroundCanvas(w: number, h: number, dpr: number, cfg: BaseConfig, half: CardHalf): HTMLCanvasElement {
   const idpr = (typeof dpr === 'number' && Number.isFinite(dpr) && dpr > 0) ? dpr : 1;
   const key = `${idpr}|${Math.round(w * 1000) / 1000}|${Math.round(h * 1000) / 1000}|${half}|${cfgBgKey(cfg)}`;
   const hit = RUNTIME.halfBgCache.get(key);
   if (hit) {
-    RUNTIME.cacheStats.halfHits++;
     touchLru(RUNTIME.halfBgCache, key, hit);
     return hit;
   }
-
-  RUNTIME.cacheStats.halfMisses++;
 
   const canvas = makeOffscreenCanvas(w * idpr, h * idpr);
   const ctx = canvas.getContext('2d');
@@ -77,8 +71,7 @@ function getHalfBackgroundCanvas(w, h, dpr, cfg, half) {
   return canvas;
 }
 
-function calcAtomicCardWidthPx(ctx, text, cfg) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function calcAtomicCardWidthPx(ctx: CanvasRenderingContext2D, text: string, v: VisualConfig): number {
   const safeText = String(text || '');
   const metrics = ctx.measureText(safeText || 'H');
   const textW = Number.isFinite(metrics.width) ? metrics.width : 0;
@@ -87,7 +80,7 @@ function calcAtomicCardWidthPx(ctx, text, cfg) {
   return Math.max(v.cardWidth, target);
 }
 
-function roundRectPath(ctx, x, y, w, h, r) {
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
   ctx.beginPath();
   ctx.moveTo(x + rr, y);
@@ -102,8 +95,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawCard(ctx, x, y, w, h, cfg) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig) {
+  const v = cfg.visual;
   ctx.save();
 
   roundRectPath(ctx, x, y, w, h, v.radius);
@@ -121,13 +114,13 @@ function drawCard(ctx, x, y, w, h, cfg) {
   ctx.restore();
 }
 
-function drawCardBackgroundCached(ctx, x, y, w, h, cfg, dpr) {
+function drawCardBackgroundCached(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, dpr: number) {
   const bg = getCardBackgroundCanvas(w, h, dpr, cfg);
   ctx.drawImage(bg, x, y, w, h);
 }
 
-function drawDividerOverlay(ctx, x, y, w, h, cfg) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawDividerOverlay(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig) {
+  const v = cfg.visual;
   const dividerSize = Math.max(0, v.divider.sizePx);
   if (dividerSize <= 0) return;
 
@@ -143,11 +136,11 @@ function drawDividerOverlay(ctx, x, y, w, h, cfg) {
   }
 }
 
-function clamp01(v) {
+function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
 
-function easeFlipProgress01(t, easing) {
+function easeFlipProgress01(t: number, easing: string): number {
   const tt = clamp01(t);
   const e = normalizeEasingName(easing) || 'linear';
   if (e === 'ease' || e === 'bounce') {
@@ -156,7 +149,7 @@ function easeFlipProgress01(t, easing) {
   return tt;
 }
 
-function easeOutFlipProgress01(t, easing) {
+function easeOutFlipProgress01(t: number, easing: string): number {
   const tt = clamp01(t);
   const e = normalizeEasingName(easing) || 'linear';
   if (e === 'ease' || e === 'bounce') {
@@ -168,7 +161,7 @@ function easeOutFlipProgress01(t, easing) {
   return tt;
 }
 
-function applyBounceToScaleY(scaleY, easedT) {
+function applyBounceToScaleY(scaleY: number, easedT: number): number {
   const t = clamp01(easedT);
   if (t <= 0.72) return scaleY;
 
@@ -180,8 +173,8 @@ function applyBounceToScaleY(scaleY, easedT) {
   return Math.max(0, scaleY * k);
 }
 
-function drawInsetShading(ctx, x, y, w, h, cfg) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawInsetShading(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig) {
+  const v = cfg.visual;
   const strength = Number.isFinite(v.edge.insetShadeStrength) ? v.edge.insetShadeStrength : 0;
   if (strength <= 0) return;
 
@@ -193,8 +186,8 @@ function drawInsetShading(ctx, x, y, w, h, cfg) {
   ctx.fillRect(x, y, w, h);
 }
 
-function strokeCardEdge(ctx, x, y, w, h, cfg) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function strokeCardEdge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig) {
+  const v = cfg.visual;
   const edge = Math.max(0, v.edge.sizePx || 0);
   const color = v.colors.edge;
   if (edge <= 0 || !color) return;
@@ -208,8 +201,8 @@ function strokeCardEdge(ctx, x, y, w, h, cfg) {
   ctx.restore();
 }
 
-function drawFlipEdgeThickness(ctx, x, y, w, h, cfg, half, theta) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawFlipEdgeThickness(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, half: CardHalf, theta: number) {
+  const v = cfg.visual;
   const edge = Math.max(0, v.edge.sizePx || 0);
   if (edge <= 0) return;
 
@@ -240,44 +233,8 @@ function drawFlipEdgeThickness(ctx, x, y, w, h, cfg, half, theta) {
 // Canvas 2D has no projective transform, so we approximate a trapezoid by drawing
 // horizontal slices with per-slice horizontal scaling. This keeps the hinge width
 // (center line) unchanged while the far edge expands.
-const FLAP_BUFFER = {
-  canvas: null,
-  ctx: null,
-  w: 0,
-  h: 0,
-  dpr: 1,
-};
-
-function getFlapBuffer(w, h, dpr) {
-  const iw = Math.max(1, Math.ceil(w));
-  const ih = Math.max(1, Math.ceil(h));
-  const idpr = (typeof dpr === 'number' && Number.isFinite(dpr) && dpr > 0) ? dpr : 1;
-
-  if (!FLAP_BUFFER.canvas) {
-    FLAP_BUFFER.canvas = document.createElement('canvas');
-    FLAP_BUFFER.ctx = FLAP_BUFFER.canvas.getContext('2d');
-    FLAP_BUFFER.w = 0;
-    FLAP_BUFFER.h = 0;
-    FLAP_BUFFER.dpr = 1;
-  }
-  if (FLAP_BUFFER.w !== iw || FLAP_BUFFER.h !== ih || FLAP_BUFFER.dpr !== idpr) {
-    FLAP_BUFFER.canvas.width = Math.max(1, Math.floor(iw * idpr));
-    FLAP_BUFFER.canvas.height = Math.max(1, Math.floor(ih * idpr));
-    FLAP_BUFFER.w = iw;
-    FLAP_BUFFER.h = ih;
-    FLAP_BUFFER.dpr = idpr;
-  } else {
-    FLAP_BUFFER.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    FLAP_BUFFER.ctx.clearRect(0, 0, FLAP_BUFFER.canvas.width, FLAP_BUFFER.canvas.height);
-  }
-
-  // Work in CSS pixels, but render into a DPR-scaled buffer for consistent sharpness.
-  FLAP_BUFFER.ctx.setTransform(idpr, 0, 0, idpr, 0, 0);
-  return FLAP_BUFFER;
-}
-
-function drawFlapTrapezoid(ctx, x, y, w, h, cfg, half, text, shadowAlpha, theta, cx) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawFlapTrapezoid(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, half: CardHalf, theta: number, cx: number) {
+  const v = cfg.visual;
   const dpr = window.devicePixelRatio || 1;
   const src = getHalfBackgroundCanvas(w, h, dpr, cfg, half);
 
@@ -311,7 +268,6 @@ function drawFlapTrapezoid(ctx, x, y, w, h, cfg, half, text, shadowAlpha, theta,
   for (let i = 0; i < sliceCount; i++) {
     const sy0 = baseYpx0 + Math.floor((i * halfHpx) / sliceCount);
     const sy1 = baseYpx0 + Math.floor(((i + 1) * halfHpx) / sliceCount);
-    const srcHpx = Math.max(1, sy1 - sy0);
 
     const center = (((sy0 + sy1) / 2) - baseYpx0) / dpr;
     const dist = (half === 'top')
@@ -347,15 +303,15 @@ function drawFlapTrapezoid(ctx, x, y, w, h, cfg, half, text, shadowAlpha, theta,
   drawFlipEdgeThickness(ctx, x, y, w, h, cfg, half, theta);
 }
 
-function drawHalfCardLayer(ctx, x, y, w, h, cfg, half, text, shadowAlpha = 0) {
+function drawHalfCardLayer(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, half: CardHalf, text: string, shadowAlpha = 0) {
   const dpr = window.devicePixelRatio || 1;
   const bg = getHalfBackgroundCanvas(w, h, dpr, cfg, half);
   ctx.drawImage(bg, x, y, w, h);
   drawHalfTextWithShadow(ctx, x, y, w, h, cfg, half, text, shadowAlpha);
 }
 
-function drawHalfCardBackground(ctx, x, y, w, h, cfg, half) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawHalfCardBackground(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, half: CardHalf) {
+  const v = cfg.visual;
   const cy = y + h / 2;
 
   ctx.save();
@@ -380,8 +336,8 @@ function drawHalfCardBackground(ctx, x, y, w, h, cfg, half) {
   ctx.restore();
 }
 
-function drawHalfTextWithShadow(ctx, x, y, w, h, cfg, half, text, shadowAlpha) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawHalfTextWithShadow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, half: CardHalf, text: string, shadowAlpha: number) {
+  const v = cfg.visual;
   const cy = y + h / 2;
 
   ctx.save();
@@ -408,11 +364,11 @@ function drawHalfTextWithShadow(ctx, x, y, w, h, cfg, half, text, shadowAlpha) {
   ctx.restore();
 }
 
-function drawTopFlap(ctx, x, y, w, h, cfg, charFrom, progress, cx, cy) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawTopFlap(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, charFrom: string, progress: number, cx: number, cy: number) {
+  const v = cfg.visual;
   const p = Math.max(0, Math.min(0.5, progress));
   const t = clamp01(p * 2);
-  const r = easeFlipProgress01(t, cfg && cfg.easing);
+  const r = easeFlipProgress01(t, cfg.easing);
   const theta = r * (Math.PI / 2);
   const scaleY = Math.max(0, Math.cos(theta));
   const shadowStrength = (typeof v.flip.shadow === 'number' && Number.isFinite(v.flip.shadow)) ? v.flip.shadow : 0.35;
@@ -422,23 +378,23 @@ function drawTopFlap(ctx, x, y, w, h, cfg, charFrom, progress, cx, cy) {
   ctx.translate(cx, cy);
   ctx.scale(1, scaleY);
   ctx.translate(-cx, -cy);
-  if (cfg && cfg.light) {
+  if (cfg.light) {
     drawFlapFlat(ctx, x, y, w, h, cfg, 'top');
   } else {
-    drawFlapTrapezoid(ctx, x, y, w, h, cfg, 'top', charFrom, shadow, theta, cx);
+    drawFlapTrapezoid(ctx, x, y, w, h, cfg, 'top', theta, cx);
   }
   drawHalfTextWithShadow(ctx, x, y, w, h, cfg, 'top', charFrom, shadow);
   ctx.restore();
 }
 
-function drawBottomFlap(ctx, x, y, w, h, cfg, charTo, progress, cx, cy) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function drawBottomFlap(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, charTo: string, progress: number, cx: number, cy: number) {
+  const v = cfg.visual;
   const p = Math.max(0.5, Math.min(1, progress));
   const t = clamp01((p - 0.5) * 2);
-  const r = easeOutFlipProgress01(t, cfg && cfg.easing);
+  const r = easeOutFlipProgress01(t, cfg.easing);
   const theta = (1 - r) * (Math.PI / 2);
   let scaleY = Math.max(0, Math.cos(theta));
-  if (cfg && normalizeEasingName(cfg.easing) === 'bounce') {
+  if (normalizeEasingName(cfg.easing) === 'bounce') {
     scaleY = applyBounceToScaleY(scaleY, r);
   }
   const shadowStrength = (typeof v.flip.shadow === 'number' && Number.isFinite(v.flip.shadow)) ? v.flip.shadow : 0.35;
@@ -448,16 +404,16 @@ function drawBottomFlap(ctx, x, y, w, h, cfg, charTo, progress, cx, cy) {
   ctx.translate(cx, cy);
   ctx.scale(1, scaleY);
   ctx.translate(-cx, -cy);
-  if (cfg && cfg.light) {
+  if (cfg.light) {
     drawFlapFlat(ctx, x, y, w, h, cfg, 'bottom');
   } else {
-    drawFlapTrapezoid(ctx, x, y, w, h, cfg, 'bottom', charTo, shadow, theta, cx);
+    drawFlapTrapezoid(ctx, x, y, w, h, cfg, 'bottom', theta, cx);
   }
   drawHalfTextWithShadow(ctx, x, y, w, h, cfg, 'bottom', charTo, shadow);
   ctx.restore();
 }
 
-function drawFlapFlat(ctx, x, y, w, h, cfg, half) {
+function drawFlapFlat(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, half: CardHalf) {
   const dpr = window.devicePixelRatio || 1;
   const src = getHalfBackgroundCanvas(w, h, dpr, cfg, half);
 
@@ -472,9 +428,17 @@ function drawFlapFlat(ctx, x, y, w, h, cfg, half) {
   ctx.drawImage(src, 0, sy, srcWpx, Math.max(1, sh), x, dy, w, dh);
 }
 
-const FONT_METRICS_CACHE = new Map();
+interface FontMetrics {
+  ascent: number;
+  descent: number;
+}
 
-function getFontAscentDescent(ctx, fontSizePx) {
+// Keyed by ctx.font. Responsive sizing (vw-based card width) can produce many
+// distinct font sizes while the window resizes, so keep this bounded.
+const FONT_METRICS_CACHE = new Map<string, FontMetrics>();
+const FONT_METRICS_CACHE_LIMIT = 64;
+
+function getFontAscentDescent(ctx: CanvasRenderingContext2D, fontSizePx: number): FontMetrics {
   // Using punctuation (small bounding boxes) can make visual centering look off.
   // Measure representative glyphs to stabilize the baseline metrics.
   const key = String(ctx.font || '');
@@ -510,12 +474,16 @@ function getFontAscentDescent(ctx, fontSizePx) {
   }
 
   const out = { ascent, descent };
+  if (FONT_METRICS_CACHE.size >= FONT_METRICS_CACHE_LIMIT) {
+    const oldestKey = FONT_METRICS_CACHE.keys().next().value;
+    if (oldestKey != null) FONT_METRICS_CACHE.delete(oldestKey);
+  }
   FONT_METRICS_CACHE.set(key, out);
   return out;
 }
 
-function resolveTextPosition(ctx, x, y, w, h, cfg, text) {
-  const v = (cfg && cfg.visual) ? cfg.visual : cfg;
+function resolveTextPosition(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cfg: BaseConfig, text: string): { tx: number; ty: number } {
+  const v = cfg.visual;
   // Assumes ctx.textBaseline is set to 'alphabetic'.
   let tx = x + w / 2;
 

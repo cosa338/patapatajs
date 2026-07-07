@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>patapata.js display</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --display-bg: #f6f4ee;
+            --display-text: #1c1e22;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --display-bg: #0e1013;
+                --display-text: #e8eaed;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: clamp(18px, 5vw, 56px);
+            background: var(--display-bg);
+            color: var(--display-text);
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+        }
+
+        main {
+            display: grid;
+            place-items: center;
+            width: 100%;
+            min-width: 0;
+            overflow: auto;
+        }
+
+        .fallback {
+            max-width: 36rem;
+            color: currentColor;
+            font-size: 14px;
+            line-height: 1.7;
+            text-align: center;
+            opacity: 0.72;
+        }
+    </style>
+    <script src="./patapata.min.js" defer></script>
+</head>
+
+<body>
+    <main id="displayRoot" aria-live="off"></main>
+
+    <script>
+        (() => {
+            'use strict';
+
+            const root = document.getElementById('displayRoot');
+
+            const defaultState = () => ({
+                kind: 'text',
+                mode: 'static',
+                value: 'patapata.js',
+                format: '',
+                diff: '',
+                sec: null,
+                minDigits: null,
+                rand: false,
+                randMin: null,
+                randMax: null,
+                shuffleTime: null,
+                repeat: false,
+                stack: false,
+                alignWidth: false,
+                atomic: false,
+                halfHead: null,
+                halfTail: null,
+                interval: null,
+                duration: null,
+                easing: '',
+                autostart: false,
+                click: false,
+                light: false,
+                styleVars: {},
+            });
+
+            const tagFor = (kind) => `patapata-${kind === 'clock' ? 'clock' : kind === 'timer' ? 'timer' : 'text'}`;
+            const defaultFormatFor = (kind) => (kind === 'timer' ? 'HHH:mm:ss' : 'HH:mm:ss');
+
+            const stateFromHash = () => {
+                const h = location.hash || '';
+                if (!h.startsWith('#s=')) return null;
+                try {
+                    const obj = JSON.parse(decodeURIComponent(h.slice(3)));
+                    if (!obj || typeof obj !== 'object') return null;
+                    const st = defaultState();
+                    for (const [k, v] of Object.entries(obj)) {
+                        if (k === 'sv') {
+                            st.styleVars = (v && typeof v === 'object') ? v : {};
+                            continue;
+                        }
+                        if (k in st) st[k] = v;
+                    }
+                    return st;
+                } catch {
+                    return null;
+                }
+            };
+
+            const buildStateElement = (st) => {
+                const el = document.createElement(tagFor(st.kind));
+                if (st.kind === 'text') {
+                    el.setAttribute('value', st.value ?? '');
+                    if (st.mode === 'static' && st.rand) {
+                        el.setAttribute('rand', '');
+                        if (st.randMin != null) el.setAttribute('rand-min', String(st.randMin));
+                        if (st.randMax != null) el.setAttribute('rand-max', String(st.randMax));
+                    }
+                    if (st.mode === 'shuffle') el.setAttribute('shuffle-time', String(st.shuffleTime ?? 1800));
+                    if (st.mode === 'sequence' && st.repeat) el.setAttribute('repeat', '');
+                    const needsInterval = st.mode !== 'static' || st.rand;
+                    if (needsInterval && st.interval != null) el.setAttribute('interval', String(st.interval));
+                    if (st.stack) el.setAttribute('stack', '');
+                    if (st.alignWidth) el.setAttribute('align-width', '');
+                } else {
+                    el.setAttribute('format', st.format || defaultFormatFor(st.kind));
+                    if (st.kind === 'clock' && st.diff) el.setAttribute('diff', st.diff);
+                    if (st.kind === 'timer' && st.sec != null) el.setAttribute('sec', String(st.sec));
+                    if (st.minDigits != null && st.minDigits > 0) el.setAttribute('min-digits', String(st.minDigits));
+                }
+                if (st.atomic) el.setAttribute('atomic', '');
+                if (st.halfHead != null && st.halfHead > 0) el.setAttribute('half-head', String(st.halfHead));
+                if (st.halfTail != null && st.halfTail > 0) el.setAttribute('half-tail', String(st.halfTail));
+                if (st.duration != null) el.setAttribute('duration', String(st.duration));
+                if (st.easing) el.setAttribute('easing', st.easing);
+                if (st.light) el.setAttribute('light', '');
+                if (st.autostart) el.setAttribute('autostart', '');
+                if (st.click) {
+                    el.setAttribute('click', '');
+                    el.style.cursor = 'pointer';
+                }
+                for (const [k, v] of Object.entries(st.styleVars || {})) el.style.setProperty(k, v);
+                return el;
+            };
+
+            const render = () => {
+                root.textContent = '';
+                const st = stateFromHash();
+                if (!st) {
+                    const msg = document.createElement('p');
+                    msg.className = 'fallback';
+                    msg.textContent = 'No display state was provided.';
+                    root.appendChild(msg);
+                    return;
+                }
+                root.appendChild(buildStateElement(st));
+            };
+
+            if (customElements.get('patapata-clock')) render();
+            else customElements.whenDefined('patapata-clock').then(render);
+            window.addEventListener('hashchange', render);
+        })();
+    </script>
+</body>
+
+</html>

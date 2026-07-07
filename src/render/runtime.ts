@@ -1,4 +1,3 @@
-// @ts-check
 
 const JS_DEFAULTS = {
   interval: 800,
@@ -9,6 +8,9 @@ const JS_DEFAULTS = {
   randMax: 10,
 };
 const TICK_INTERVAL_MS = 16;
+// Tick pace while painting is suppressed (hidden tab / off-screen element):
+// keep values fresh at low cost instead of burning CPU at ~60fps.
+const HIDDEN_TICK_INTERVAL_MS = 1000;
 const MS_PANEL_DURATION_MS = 400;
 const VISUAL_ONLY_ATTRS = new Set(['light', 'easing']);
 
@@ -115,14 +117,6 @@ const RUNTIME = {
   canvasBgCacheLimit: 64,
   cardBgCache: new Map<string, HTMLCanvasElement>(),
   halfBgCache: new Map<string, HTMLCanvasElement>(),
-  cacheStats: {
-    cardHits: 0,
-    cardMisses: 0,
-    halfHits: 0,
-    halfMisses: 0,
-    evictions: 0,
-    clears: 0,
-  },
 };
 
 function globalRafRequest(el: RuntimeElement) {
@@ -191,6 +185,7 @@ function unregisterVisibility(el: RuntimeElement) {
 export {
   JS_DEFAULTS,
   TICK_INTERVAL_MS,
+  HIDDEN_TICK_INTERVAL_MS,
   MS_PANEL_DURATION_MS,
   VISUAL_ONLY_ATTRS,
   TEXT_OBSERVED_ATTRS,

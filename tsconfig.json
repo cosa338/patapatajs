@@ -8,11 +8,12 @@
     "lib": ["ES2022", "ES2022.Intl", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "strict": false,
+    "noImplicitAny": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

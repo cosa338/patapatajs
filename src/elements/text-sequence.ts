@@ -1,4 +1,3 @@
-// @ts-check
 
 import { attrNumber, parseJsonLoose, splitGraphemes } from '../core/utils.ts';
 import { JS_DEFAULTS } from '../render/runtime.ts';

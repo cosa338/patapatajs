@@ -1,5 +1,5 @@
 /*!
- * patapata.jp v0.1.1
+ * patapata.js v0.1.2
  * SPDX-License-Identifier: MIT
  * Copyright (c) 2026 https://github.com/cosa338
  */
@@ -64,13 +64,20 @@
       fallback
     );
   }
+  var graphemeSegmenter;
   function splitGraphemes(str) {
-    try {
-      if (typeof Intl !== "undefined" && Intl.Segmenter) {
-        const seg = new Intl.Segmenter(void 0, { granularity: "grapheme" });
-        return Array.from(seg.segment(str), (s) => s.segment);
+    if (graphemeSegmenter === void 0) {
+      try {
+        graphemeSegmenter = typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter(void 0, { granularity: "grapheme" }) : null;
+      } catch (_) {
+        graphemeSegmenter = null;
       }
-    } catch (_) {
+    }
+    if (graphemeSegmenter) {
+      try {
+        return Array.from(graphemeSegmenter.segment(str), (s) => s.segment);
+      } catch (_) {
+      }
     }
     return Array.from(str);
   }
@@ -123,6 +130,7 @@
     randMax: 10
   };
   var TICK_INTERVAL_MS = 16;
+  var HIDDEN_TICK_INTERVAL_MS = 1e3;
   var MS_PANEL_DURATION_MS = 400;
   var VISUAL_ONLY_ATTRS = /* @__PURE__ */ new Set(["light", "easing"]);
   var TEXT_OBSERVED_ATTRS = [
@@ -218,15 +226,7 @@
     },
     canvasBgCacheLimit: 64,
     cardBgCache: /* @__PURE__ */ new Map(),
-    halfBgCache: /* @__PURE__ */ new Map(),
-    cacheStats: {
-      cardHits: 0,
-      cardMisses: 0,
-      halfHits: 0,
-      halfMisses: 0,
-      evictions: 0,
-      clears: 0
-    }
+    halfBgCache: /* @__PURE__ */ new Map()
   };
   function globalRafRequest(el) {
     RUNTIME.raf.queue.add(el);
@@ -451,6 +451,7 @@
   };
 
   // src/render/flipper.ts
+  var MAX_STACKED_ANIMATIONS = 64;
   var FlipAnimation = class {
     constructor(from, to, startTime, durationMs = null) {
       __publicField(this, "from");
@@ -477,6 +478,19 @@
     transitionTo(next, now, durationMs = null) {
       const to = String(next ?? "");
       if (to === this.baseValue) return;
+      if (this.animations.length > 0) {
+        let write = 0;
+        for (let i = 0; i < this.animations.length; i++) {
+          const anim2 = this.animations[i];
+          if (anim2.durationMs != null && now - anim2.startTime >= anim2.durationMs) continue;
+          this.animations[write] = anim2;
+          write++;
+        }
+        this.animations.length = write;
+        if (this.animations.length >= MAX_STACKED_ANIMATIONS) {
+          this.animations.length = MAX_STACKED_ANIMATIONS - 1;
+        }
+      }
       const anim = new FlipAnimation(this.baseValue, to, now, durationMs);
       this.animations.unshift(anim);
       this.baseValue = to;
@@ -501,6 +515,61 @@
       return this.animations.length > 0;
     }
   };
+
+  // src/elements/shared.ts
+  function applyPanelTokensToPart(opts) {
+    const {
+      part,
+      tokens,
+      isMsPanel,
+      atomic,
+      durationNormal,
+      durationMsFixed,
+      nowTs,
+      allowRebuild = false,
+      onLayoutDirty = null
+    } = opts;
+    const rawTokensToApply = atomic ? [tokens.join("")] : tokens;
+    const tokensToApply = rawTokensToApply.length > 0 ? rawTokensToApply : [""];
+    const flagsToApply = atomic ? [isMsPanel.some(Boolean)] : isMsPanel;
+    if (!atomic && tokensToApply.length > (part.maxLen || 0)) {
+      part.maxLen = tokensToApply.length;
+      if (typeof onLayoutDirty === "function") onLayoutDirty();
+    }
+    if (allowRebuild && part.flippers.length !== tokensToApply.length) {
+      part.flippers.length = 0;
+      for (let i = 0; i < tokensToApply.length; i++) part.flippers.push(new Flipper(""));
+      if (typeof onLayoutDirty === "function") onLayoutDirty();
+    }
+    for (let i = 0; i < part.flippers.length; i++) {
+      const dur = flagsToApply[i] ? durationMsFixed : durationNormal;
+      part.flippers[i].transitionTo(tokensToApply[i] ?? "", nowTs, dur);
+    }
+  }
+  function buildSinglePartSequence(mode, probe, tokens, atomic) {
+    const initialTokens = atomic ? [tokens.join("")] : tokens;
+    const count = Math.max(1, initialTokens.length);
+    const flippers = [];
+    for (let i = 0; i < count; i++) flippers.push(new Flipper(""));
+    const part = {
+      items: [probe],
+      maxLen: atomic ? 1 : count,
+      flippers,
+      currentText: probe,
+      lastIndex: 0
+    };
+    for (let i = 0; i < part.flippers.length; i++) part.flippers[i].setValue(initialTokens[i] ?? "");
+    const sequence = {
+      mode,
+      layout: "row",
+      repeat: true,
+      steps: 1,
+      stepIndex: 0,
+      shuffleEndAt: null,
+      parts: [part]
+    };
+    return { sequence, part };
+  }
 
   // src/render/random-text.ts
   var HALF_SPACE_RANGE = [32, 32];
@@ -642,16 +711,7 @@
       return "";
     },
     blankForSource: (source) => {
-      if (!source) {
-        return "";
-      }
-      if (typeof source.blank === "string") return source.blank;
-      if (source.type === "ranges") {
-        const r = source.ranges;
-        if (r === FULL_HIRA_RANGES || r === FULL_KATA_RANGES || r === FULL_DIGIT_RANGES) return "\u3000";
-        return " ";
-      }
-      return RandomText.hasAnyFullwidth((source.chars || []).join("")) ? "\u3000" : " ";
+      return source ? source.blank : "";
     }
   };
 
@@ -905,7 +965,7 @@
 
   // src/render/draw.ts
   function cfgBgKey(cfg) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     return [
       v.colors.panelTop,
       v.colors.panelBottom,
@@ -922,7 +982,6 @@
     const oldestKey = map.keys().next().value;
     if (oldestKey != null) {
       map.delete(oldestKey);
-      RUNTIME.cacheStats.evictions++;
     }
   }
   function makeOffscreenCanvas(wPx, hPx) {
@@ -936,11 +995,9 @@
     const key = `${idpr}|${Math.round(w * 1e3) / 1e3}|${Math.round(h * 1e3) / 1e3}|${cfgBgKey(cfg)}`;
     const hit = RUNTIME.cardBgCache.get(key);
     if (hit) {
-      RUNTIME.cacheStats.cardHits++;
       touchLru(RUNTIME.cardBgCache, key, hit);
       return hit;
     }
-    RUNTIME.cacheStats.cardMisses++;
     const canvas = makeOffscreenCanvas(w * idpr, h * idpr);
     const ctx = canvas.getContext("2d");
     ctx.setTransform(idpr, 0, 0, idpr, 0, 0);
@@ -953,11 +1010,9 @@
     const key = `${idpr}|${Math.round(w * 1e3) / 1e3}|${Math.round(h * 1e3) / 1e3}|${half}|${cfgBgKey(cfg)}`;
     const hit = RUNTIME.halfBgCache.get(key);
     if (hit) {
-      RUNTIME.cacheStats.halfHits++;
       touchLru(RUNTIME.halfBgCache, key, hit);
       return hit;
     }
-    RUNTIME.cacheStats.halfMisses++;
     const canvas = makeOffscreenCanvas(w * idpr, h * idpr);
     const ctx = canvas.getContext("2d");
     ctx.setTransform(idpr, 0, 0, idpr, 0, 0);
@@ -965,8 +1020,7 @@
     touchLru(RUNTIME.halfBgCache, key, canvas);
     return canvas;
   }
-  function calcAtomicCardWidthPx(ctx, text, cfg) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+  function calcAtomicCardWidthPx(ctx, text, v) {
     const safeText = String(text || "");
     const metrics = ctx.measureText(safeText || "H");
     const textW = Number.isFinite(metrics.width) ? metrics.width : 0;
@@ -989,7 +1043,7 @@
     ctx.closePath();
   }
   function drawCard(ctx, x, y, w, h, cfg) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     ctx.save();
     roundRectPath(ctx, x, y, w, h, v.radius);
     ctx.clip();
@@ -1006,7 +1060,7 @@
     ctx.drawImage(bg, x, y, w, h);
   }
   function drawDividerOverlay(ctx, x, y, w, h, cfg) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const dividerSize = Math.max(0, v.divider.sizePx);
     if (dividerSize <= 0) return;
     const cy = y + h / 2;
@@ -1050,7 +1104,7 @@
     return Math.max(0, scaleY * k);
   }
   function drawInsetShading(ctx, x, y, w, h, cfg) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const strength = Number.isFinite(v.edge.insetShadeStrength) ? v.edge.insetShadeStrength : 0;
     if (strength <= 0) return;
     const g = ctx.createLinearGradient(0, y, 0, y + h);
@@ -1061,7 +1115,7 @@
     ctx.fillRect(x, y, w, h);
   }
   function strokeCardEdge(ctx, x, y, w, h, cfg) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const edge = Math.max(0, v.edge.sizePx || 0);
     const color = v.colors.edge;
     if (edge <= 0 || !color) return;
@@ -1074,7 +1128,7 @@
     ctx.restore();
   }
   function drawFlipEdgeThickness(ctx, x, y, w, h, cfg, half, theta) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const edge = Math.max(0, v.edge.sizePx || 0);
     if (edge <= 0) return;
     const t = clamp01(Math.sin(theta));
@@ -1097,8 +1151,8 @@
     }
     ctx.restore();
   }
-  function drawFlapTrapezoid(ctx, x, y, w, h, cfg, half, text, shadowAlpha, theta, cx) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+  function drawFlapTrapezoid(ctx, x, y, w, h, cfg, half, theta, cx) {
+    const v = cfg.visual;
     const dpr = window.devicePixelRatio || 1;
     const src = getHalfBackgroundCanvas(w, h, dpr, cfg, half);
     const halfH = h / 2;
@@ -1119,7 +1173,6 @@
     for (let i = 0; i < sliceCount; i++) {
       const sy0 = baseYpx0 + Math.floor(i * halfHpx / sliceCount);
       const sy1 = baseYpx0 + Math.floor((i + 1) * halfHpx / sliceCount);
-      const srcHpx = Math.max(1, sy1 - sy0);
       const center = ((sy0 + sy1) / 2 - baseYpx0) / dpr;
       const dist = half === "top" ? clamp01((halfH - center) / halfH) : clamp01(center / halfH);
       const scaleX = 1 + 2 * (t * dist * (h * overhang)) / Math.max(1, w);
@@ -1147,7 +1200,7 @@
     drawHalfTextWithShadow(ctx, x, y, w, h, cfg, half, text, shadowAlpha);
   }
   function drawHalfCardBackground(ctx, x, y, w, h, cfg, half) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const cy = y + h / 2;
     ctx.save();
     roundRectPath(ctx, x, y, w, h, v.radius);
@@ -1165,7 +1218,7 @@
     ctx.restore();
   }
   function drawHalfTextWithShadow(ctx, x, y, w, h, cfg, half, text, shadowAlpha) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const cy = y + h / 2;
     ctx.save();
     roundRectPath(ctx, x, y, w, h, v.radius);
@@ -1185,10 +1238,10 @@
     ctx.restore();
   }
   function drawTopFlap(ctx, x, y, w, h, cfg, charFrom, progress, cx, cy) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const p = Math.max(0, Math.min(0.5, progress));
     const t = clamp01(p * 2);
-    const r = easeFlipProgress01(t, cfg && cfg.easing);
+    const r = easeFlipProgress01(t, cfg.easing);
     const theta = r * (Math.PI / 2);
     const scaleY = Math.max(0, Math.cos(theta));
     const shadowStrength = typeof v.flip.shadow === "number" && Number.isFinite(v.flip.shadow) ? v.flip.shadow : 0.35;
@@ -1197,22 +1250,22 @@
     ctx.translate(cx, cy);
     ctx.scale(1, scaleY);
     ctx.translate(-cx, -cy);
-    if (cfg && cfg.light) {
+    if (cfg.light) {
       drawFlapFlat(ctx, x, y, w, h, cfg, "top");
     } else {
-      drawFlapTrapezoid(ctx, x, y, w, h, cfg, "top", charFrom, shadow, theta, cx);
+      drawFlapTrapezoid(ctx, x, y, w, h, cfg, "top", theta, cx);
     }
     drawHalfTextWithShadow(ctx, x, y, w, h, cfg, "top", charFrom, shadow);
     ctx.restore();
   }
   function drawBottomFlap(ctx, x, y, w, h, cfg, charTo, progress, cx, cy) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     const p = Math.max(0.5, Math.min(1, progress));
     const t = clamp01((p - 0.5) * 2);
-    const r = easeOutFlipProgress01(t, cfg && cfg.easing);
+    const r = easeOutFlipProgress01(t, cfg.easing);
     const theta = (1 - r) * (Math.PI / 2);
     let scaleY = Math.max(0, Math.cos(theta));
-    if (cfg && normalizeEasingName(cfg.easing) === "bounce") {
+    if (normalizeEasingName(cfg.easing) === "bounce") {
       scaleY = applyBounceToScaleY(scaleY, r);
     }
     const shadowStrength = typeof v.flip.shadow === "number" && Number.isFinite(v.flip.shadow) ? v.flip.shadow : 0.35;
@@ -1221,10 +1274,10 @@
     ctx.translate(cx, cy);
     ctx.scale(1, scaleY);
     ctx.translate(-cx, -cy);
-    if (cfg && cfg.light) {
+    if (cfg.light) {
       drawFlapFlat(ctx, x, y, w, h, cfg, "bottom");
     } else {
-      drawFlapTrapezoid(ctx, x, y, w, h, cfg, "bottom", charTo, shadow, theta, cx);
+      drawFlapTrapezoid(ctx, x, y, w, h, cfg, "bottom", theta, cx);
     }
     drawHalfTextWithShadow(ctx, x, y, w, h, cfg, "bottom", charTo, shadow);
     ctx.restore();
@@ -1242,6 +1295,7 @@
     ctx.drawImage(src, 0, sy, srcWpx, Math.max(1, sh), x, dy, w, dh);
   }
   var FONT_METRICS_CACHE = /* @__PURE__ */ new Map();
+  var FONT_METRICS_CACHE_LIMIT = 64;
   function getFontAscentDescent(ctx, fontSizePx) {
     const key = String(ctx.font || "");
     const cached = FONT_METRICS_CACHE.get(key);
@@ -1269,11 +1323,15 @@
       }
     }
     const out = { ascent, descent };
+    if (FONT_METRICS_CACHE.size >= FONT_METRICS_CACHE_LIMIT) {
+      const oldestKey = FONT_METRICS_CACHE.keys().next().value;
+      if (oldestKey != null) FONT_METRICS_CACHE.delete(oldestKey);
+    }
     FONT_METRICS_CACHE.set(key, out);
     return out;
   }
   function resolveTextPosition(ctx, x, y, w, h, cfg, text) {
-    const v = cfg && cfg.visual ? cfg.visual : cfg;
+    const v = cfg.visual;
     let tx = x + w / 2;
     const align = v.text.align;
     if (align === "left") tx = x;
@@ -1617,7 +1675,6 @@
       halfTail,
       ctx
     });
-    const isSequencing = !!host._sequence;
     const dpr = window.devicePixelRatio || 1;
     const pxW = Math.max(1, Math.floor(totalW * dpr));
     const pxH = Math.max(1, Math.floor(totalH * dpr));
@@ -1827,7 +1884,7 @@
       this.stop();
       this._rafScheduled = false;
     }
-    attributeChangedCallback(name) {
+    attributeChangedCallback(name, oldValue = null) {
       if (!this.isConnected) return;
       if (name === "click") return;
       if (VISUAL_ONLY_ATTRS.has(name)) {
@@ -1836,6 +1893,10 @@
       }
       if (TEXT_RESTART_ATTRS.has(name)) {
         this._markLayoutVisual();
+        if (name === "value" && this._timer == null && !this.hasAttribute("autostart")) {
+          this._flipToValue(oldValue);
+          return;
+        }
         this._restartIfActive();
         return;
       }
@@ -1847,6 +1908,52 @@
       }
       this._markLayoutVisual();
       this._render(performance.now());
+    }
+    _flipToValue(oldValueRaw) {
+      const cfg = this._readConfig();
+      const value = String(cfg.value ?? "");
+      if (this.hasAttribute("rand") || parseJsonLoose(value) != null || this._sequence && this._sequence.mode !== "static") {
+        this._stopAndRender();
+        return;
+      }
+      const atomic = !!(cfg.visual && cfg.visual.atomic);
+      const now = performance.now();
+      if (!this._sequence) {
+        const oldValue = this._visibleSeedFromValue(oldValueRaw);
+        if (oldValue == null) {
+          this._stopAndRender();
+          return;
+        }
+        const oldTokens = atomic ? [oldValue] : splitGraphemes(oldValue);
+        const { sequence } = buildSinglePartSequence("static", oldValue, oldTokens, atomic);
+        this._sequence = sequence;
+      }
+      const part = this._sequence.parts[0];
+      const tokens = atomic ? [value] : splitGraphemes(value);
+      applyPanelTokensToPart({
+        part,
+        tokens,
+        isMsPanel: tokens.map(() => false),
+        atomic,
+        durationNormal: Math.max(1, cfg.duration || JS_DEFAULTS.duration),
+        durationMsFixed: MS_PANEL_DURATION_MS,
+        nowTs: now,
+        allowRebuild: true,
+        onLayoutDirty: () => {
+          this._layoutDirty = true;
+        }
+      });
+      part.items = [value];
+      part.currentText = value;
+      this._layoutDirty = true;
+      this._render(now);
+      this._ensureRaf();
+    }
+    _visibleSeedFromValue(valueRaw) {
+      if (parseJsonLoose(valueRaw) == null) return String(valueRaw ?? "");
+      const parts = normalizePartsFromValue(valueRaw);
+      if (parts.length !== 1) return null;
+      return String(parts[0]?.[0] ?? "");
     }
     start() {
       this.stop();
@@ -1892,6 +1999,7 @@
         this._visualDirty = true;
         this._visualCfgCache = null;
         this._visualCfgCacheDividerFallback = null;
+        this._pokeTick();
         this._render(performance.now());
         this._ensureRaf();
       }
@@ -1906,8 +2014,13 @@
       this._visualDirty = true;
       this._visualCfgCache = null;
       this._visualCfgCacheDividerFallback = null;
+      this._pokeTick();
       this._render(performance.now());
       this._ensureRaf();
+    }
+    // Hook for subclasses whose tick loop slows down while painting is
+    // suppressed: run a tick immediately after becoming visible again.
+    _pokeTick() {
     }
     _ensureRaf() {
       if (this._rafScheduled) return;
@@ -2011,12 +2124,12 @@
     if (!Number.isFinite(n)) return 0;
     return n <= 0 ? 0 : n;
   }
-  function tokenizeClockFormat(fmt) {
+  function tokenizeFormat(fmt, tokenNames) {
     const s = String(fmt ?? "");
     const out = [];
     for (let i = 0; i < s.length; ) {
       let matched = null;
-      for (const t of CLOCK_TOKENS) {
+      for (const t of tokenNames) {
         if (s.startsWith(t, i)) {
           matched = t;
           break;
@@ -2032,6 +2145,9 @@
       }
     }
     return out;
+  }
+  function tokenizeClockFormat(fmt) {
+    return tokenizeFormat(fmt, CLOCK_TOKENS);
   }
   function clockTokenValue(token, date) {
     const d = date;
@@ -2242,26 +2358,7 @@
     return out.join("");
   }
   function tokenizeTimerFormat(fmt) {
-    const s = String(fmt ?? "");
-    const out = [];
-    for (let i = 0; i < s.length; ) {
-      let matched = null;
-      for (const t of TIMER_TOKENS) {
-        if (s.startsWith(t, i)) {
-          matched = t;
-          break;
-        }
-      }
-      if (matched) {
-        out.push({ type: "token", value: matched });
-        i += matched.length;
-      } else {
-        const ch = splitGraphemes(s.slice(i))[0] ?? s[i];
-        out.push({ type: "lit", value: ch });
-        i += ch.length;
-      }
-    }
-    return out;
+    return tokenizeFormat(fmt, TIMER_TOKENS);
   }
   function timerTokenValue(token, msTotal, minDigits = 0) {
     const msAbs = clampNonNegativeMs(msTotal);
@@ -2364,65 +2461,12 @@
     return out.join("");
   }
 
-  // src/elements/shared.ts
-  function applyPanelTokensToPart(opts) {
-    const {
-      part,
-      tokens,
-      isMsPanel,
-      atomic,
-      durationNormal,
-      durationMsFixed,
-      nowTs,
-      allowRebuild = false,
-      onLayoutDirty = null
-    } = opts;
-    const tokensToApply = atomic ? [tokens.join("")] : tokens;
-    const flagsToApply = atomic ? [isMsPanel.some(Boolean)] : isMsPanel;
-    if (!atomic && tokensToApply.length > (part.maxLen || 0)) {
-      part.maxLen = tokensToApply.length;
-      if (typeof onLayoutDirty === "function") onLayoutDirty();
-    }
-    if (allowRebuild && part.flippers.length !== tokensToApply.length) {
-      part.flippers.length = 0;
-      for (let i = 0; i < tokensToApply.length; i++) part.flippers.push(new Flipper(""));
-      if (typeof onLayoutDirty === "function") onLayoutDirty();
-    }
-    for (let i = 0; i < part.flippers.length; i++) {
-      const dur = flagsToApply[i] ? durationMsFixed : durationNormal;
-      part.flippers[i].transitionTo(tokensToApply[i] ?? "", nowTs, dur);
-    }
-  }
-  function buildSinglePartSequence(mode, probe, tokens, atomic) {
-    const initialTokens = atomic ? [tokens.join("")] : tokens;
-    const count = Math.max(1, initialTokens.length);
-    const flippers = [];
-    for (let i = 0; i < count; i++) flippers.push(new Flipper(""));
-    const part = {
-      items: [probe],
-      maxLen: atomic ? 1 : count,
-      flippers,
-      currentText: probe,
-      lastIndex: 0
-    };
-    for (let i = 0; i < part.flippers.length; i++) part.flippers[i].setValue(initialTokens[i] ?? "");
-    const sequence = {
-      mode,
-      layout: "row",
-      repeat: true,
-      steps: 1,
-      stepIndex: 0,
-      shuffleEndAt: null,
-      parts: [part]
-    };
-    return { sequence, part };
-  }
-
   // src/elements/clock.ts
   var PatapataClockElement = class extends PatapataTextElement {
     constructor() {
       super(...arguments);
       __publicField(this, "_lastInvalidDiffWarning", null);
+      __publicField(this, "_stepFn", null);
     }
     static get observedAttributes() {
       return CLOCK_OBSERVED_ATTRS;
@@ -2484,6 +2528,13 @@
       const { sequence, part } = buildSinglePartSequence("clock", probe, panels.tokens, atomic);
       this._sequence = sequence;
       this._layoutDirty = true;
+      const hasMsPanels = panels.isMsPanel.some(Boolean);
+      const nextTickDelayMs = () => {
+        if (this._isPaintSuppressed()) return HIDDEN_TICK_INTERVAL_MS;
+        if (hasMsPanels) return TICK_INTERVAL_MS;
+        const toNextSecond = 1e3 - Date.now() % 1e3;
+        return Math.min(1e3, Math.max(TICK_INTERVAL_MS, toNextSecond + 8));
+      };
       const stepClockOnce = () => {
         if (!this._sequence) return;
         const nowTs = performance.now();
@@ -2504,12 +2555,20 @@
           }
         });
         part.currentText = probe;
-        this._render(nowTs, true);
         this._ensureRaf();
-        this._timer = setTimeout(stepClockOnce, TICK_INTERVAL_MS);
+        this._timer = setTimeout(stepClockOnce, nextTickDelayMs());
       };
+      this._stepFn = stepClockOnce;
       this._render(now);
-      this._timer = setTimeout(stepClockOnce, TICK_INTERVAL_MS);
+      this._timer = setTimeout(stepClockOnce, nextTickDelayMs());
+    }
+    // While hidden/off-screen the tick loop slows to HIDDEN_TICK_INTERVAL_MS;
+    // when painting resumes, tick immediately so the display snaps up to date.
+    _pokeTick() {
+      if (this._timer == null || this._stepFn == null) return;
+      clearTimeout(this._timer);
+      this._timer = null;
+      this._stepFn();
     }
   };
 
@@ -2520,9 +2579,11 @@
       __publicField(this, "_timerRunning");
       __publicField(this, "_timerBaseElapsedMs");
       __publicField(this, "_timerStartedAt");
+      __publicField(this, "_hasMsPanels");
       this._timerRunning = false;
       this._timerBaseElapsedMs = 0;
       this._timerStartedAt = 0;
+      this._hasMsPanels = false;
     }
     static get observedAttributes() {
       return TIMER_OBSERVED_ATTRS;
@@ -2666,6 +2727,15 @@
       const { sequence } = buildSinglePartSequence("timer", probe, panels.tokens, atomic);
       this._sequence = sequence;
       this._layoutDirty = true;
+      this._hasMsPanels = panels.isMsPanel.some(Boolean);
+    }
+    _nextTickDelayMs(nowTs) {
+      if (this._isPaintSuppressed()) return HIDDEN_TICK_INTERVAL_MS;
+      if (this._hasMsPanels) return TICK_INTERVAL_MS;
+      const { countdownStartMs } = this._timerConfig();
+      const msPart = this._displayMs(nowTs) % 1e3;
+      const toBoundary = countdownStartMs == null ? 1e3 - msPart : msPart > 0 ? msPart : 1e3;
+      return Math.min(1e3, Math.max(TICK_INTERVAL_MS, toBoundary + 8));
     }
     _applyDisplay(nowTs, allowRebuild = false) {
       if (!this._sequence || !this._sequence.parts || !this._sequence.parts[0]) return;
@@ -2700,11 +2770,17 @@
         this._clearTimerHandle();
       }
       this._applyDisplay(nowTs, true);
-      this._render(nowTs, true);
       this._ensureRaf();
       if (this._timerRunning) {
-        this._timer = setTimeout(() => this._tickOnce(), TICK_INTERVAL_MS);
+        this._timer = setTimeout(() => this._tickOnce(), this._nextTickDelayMs(nowTs));
       }
+    }
+    // While hidden/off-screen the tick loop slows to HIDDEN_TICK_INTERVAL_MS;
+    // when painting resumes, tick immediately so the display snaps up to date.
+    _pokeTick() {
+      if (!this._timerRunning || this._timer == null) return;
+      this._clearTimerHandle();
+      this._tickOnce();
     }
   };
 

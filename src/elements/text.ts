@@ -1,14 +1,17 @@
-// @ts-check
 
 import {
   attrNumber,
   attrString,
+  normalizePartsFromValue,
+  parseJsonLoose,
   pick,
   readEasing,
   readHalfHeadTail,
+  splitGraphemes,
 } from '../core/utils.ts';
 import {
   JS_DEFAULTS,
+  MS_PANEL_DURATION_MS,
   RUNTIME,
   TEXT_OBSERVED_ATTRS,
   TEXT_RESTART_ATTRS,
@@ -18,6 +21,7 @@ import {
   globalRafRequest,
 } from '../render/runtime.ts';
 import { PatapataCanvasBaseElement } from '../render/canvas-base.ts';
+import { applyPanelTokensToPart, buildSinglePartSequence } from './shared.ts';
 import { ensureTextSequence } from './text-sequence.ts';
 import { renderText } from './text-render.ts';
 import type { BaseConfig, LayoutCache, SequenceState } from './types.ts';
@@ -89,7 +93,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     this._visualCfgCacheDividerFallback = null;
   }
 
-  _readVisualConfig(dividerModeFallback) {
+  _readVisualConfig(dividerModeFallback: string) {
     const fb = dividerModeFallback;
     if (!this._visualDirty && this._visualCfgCache && this._visualCfgCacheDividerFallback === fb) return this._visualCfgCache;
     const v = this._readVisualConfigBase(fb);
@@ -98,7 +102,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     return v;
   }
 
-  _applyAutoAriaLabel(labelText) {
+  _applyAutoAriaLabel(labelText: string) {
     // Skip if author intentionally hides it.
     if (this.getAttribute('aria-hidden') === 'true') return;
 
@@ -178,7 +182,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     this._cancelResizeRaf();
   }
 
-  _setClickHandler(fn) {
+  _setClickHandler(fn: ((e: Event) => void) | null) {
     if (this._onClick) this.removeEventListener('click', this._onClick);
     this._onClick = typeof fn === 'function' ? fn : null;
     if (this._onClick) this.addEventListener('click', this._onClick);
@@ -229,7 +233,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     this._rafScheduled = false;
   }
 
-  attributeChangedCallback(name) {
+  attributeChangedCallback(name: string, oldValue: string | null = null) {
     if (!this.isConnected) return;
 
     // click itself doesn't require rerender.
@@ -243,6 +247,11 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
 
     if (TEXT_RESTART_ATTRS.has(name)) {
       this._markLayoutVisual();
+      if (name === 'value' && this._timer == null && !this.hasAttribute('autostart')) {
+        // Not running: animate a flip to the new value instead of swapping.
+        this._flipToValue(oldValue);
+        return;
+      }
       // If currently running (or autostart enabled), restart to reflect the new config.
       this._restartIfActive();
       return;
@@ -257,6 +266,63 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
 
     this._markLayoutVisual();
     this._render(performance.now());
+  }
+
+  _flipToValue(oldValueRaw: string | null) {
+    const cfg = this._readConfig();
+    const value = String(cfg.value ?? '');
+
+    // Flip-in-place is only for plain text values. JSON values, rand mode and
+    // leftover non-static sequences keep the previous behavior (static render).
+    if (this.hasAttribute('rand') || parseJsonLoose(value) != null
+      || (this._sequence && this._sequence.mode !== 'static')) {
+      this._stopAndRender();
+      return;
+    }
+
+    const atomic = !!(cfg.visual && cfg.visual.atomic);
+    const now = performance.now();
+
+    if (!this._sequence) {
+      // Seed panels from the previous value so the flip starts from it.
+      const oldValue = this._visibleSeedFromValue(oldValueRaw);
+      if (oldValue == null) {
+        this._stopAndRender();
+        return;
+      }
+      const oldTokens = atomic ? [oldValue] : splitGraphemes(oldValue);
+      const { sequence } = buildSinglePartSequence('static', oldValue, oldTokens, atomic);
+      this._sequence = sequence;
+    }
+
+    const part = this._sequence.parts[0];
+    const tokens = atomic ? [value] : splitGraphemes(value);
+    applyPanelTokensToPart({
+      part,
+      tokens,
+      isMsPanel: tokens.map(() => false),
+      atomic,
+      durationNormal: Math.max(1, cfg.duration || JS_DEFAULTS.duration),
+      durationMsFixed: MS_PANEL_DURATION_MS,
+      nowTs: now,
+      allowRebuild: true,
+      onLayoutDirty: () => { this._layoutDirty = true; },
+    });
+    part.items = [value];
+    part.currentText = value;
+
+    this._layoutDirty = true;
+    this._render(now);
+    this._ensureRaf();
+  }
+
+  _visibleSeedFromValue(valueRaw: string | null): string | null {
+    if (parseJsonLoose(valueRaw) == null) return String(valueRaw ?? '');
+
+    const parts = normalizePartsFromValue(valueRaw);
+    if (parts.length !== 1) return null;
+
+    return String(parts[0]?.[0] ?? '');
   }
 
   start() {
@@ -304,7 +370,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     this._isIntersecting = true;
   }
 
-  _setIntersecting(v) {
+  _setIntersecting(v: boolean) {
     const next = !!v;
     if (this._isIntersecting === next) return;
     this._isIntersecting = next;
@@ -313,6 +379,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
       this._visualDirty = true;
       this._visualCfgCache = null;
       this._visualCfgCacheDividerFallback = null;
+      this._pokeTick();
       this._render(performance.now());
       this._ensureRaf();
     }
@@ -328,9 +395,14 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     this._visualDirty = true;
     this._visualCfgCache = null;
     this._visualCfgCacheDividerFallback = null;
+    this._pokeTick();
     this._render(performance.now());
     this._ensureRaf();
   }
+
+  // Hook for subclasses whose tick loop slows down while painting is
+  // suppressed: run a tick immediately after becoming visible again.
+  _pokeTick() {}
 
   _ensureRaf() {
     if (this._rafScheduled) return;
@@ -340,7 +412,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     globalRafRequest(this);
   }
 
-  _onGlobalRafFrame(now) {
+  _onGlobalRafFrame(now: number) {
     this._rafScheduled = false;
     if (this._isPaintSuppressed()) return false;
     this._render(now, true);
@@ -366,7 +438,7 @@ class PatapataTextElement extends PatapataCanvasBaseElement {
     return { visual, interval, duration, value, light, easing, halfHead, halfTail };
   }
 
-  _render(now, fromRaf = false) {
+  _render(now: number, fromRaf = false) {
     renderText(this, now, fromRaf);
   }
 }
